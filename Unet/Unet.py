@@ -13,6 +13,7 @@ import torch.nn.functional as F
 from torchvision.transforms.functional import to_pil_image
 import torch.optim as optim
 from typing import Dict
+import torchmetrics
 
 class CustomDataset(Dataset):
     def __init__(self, directory, normalize=False, data_name='custom'):
@@ -63,8 +64,8 @@ class CustomDataset(Dataset):
 train_data = CustomDataset('/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset/train', normalize=False)
 val_data = CustomDataset('/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset/val', normalize=False)
 
-train_loader = DataLoader(train_data, batch_size = 32, shuffle = True)
-val_loader = DataLoader(val_data, batch_size = 32, shuffle = True)
+train_loader = DataLoader(train_data, batch_size = 8, shuffle = True)
+val_loader = DataLoader(val_data, batch_size = 8, shuffle = True)
 
 
 
@@ -175,7 +176,7 @@ model.to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-
+jaccard = torchmetrics.JaccardIndex(num_classes=49)
 num_epochs = 5
 for epoch in range(num_epochs):
     model.train()
@@ -190,7 +191,10 @@ for epoch in range(num_epochs):
         optimizer.step()
         
         train_loss += loss.item()
+        train_iou += jaccard(outputs, masks).item()
+        
     train_loss /= len(train_loader)
+    train_iou /= len(train_loader)  
 
     print(f'Epoch [{epoch+1}/{num_epochs}], Train Loss: {train_loss:.4f}')
 
