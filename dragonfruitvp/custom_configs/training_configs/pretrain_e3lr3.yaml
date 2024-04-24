@@ -1,0 +1,16 @@
+pre_seq_length: 11
+aft_seq_length: 11
+total_length: 22
+batch_size: 16
+val_batch_size: 16
+epoch: 3
+lr: 0.001
+metrics: 
+  - 'mse'
+  - 'mae'
+  - 'ssim'
+dataname: 'custom'
+in_shape: [11, 3, 160, 240]
+res_dir: 'weights_hub'
+
+

@@ -1,0 +1,6 @@
+method: 'SimVP'
+model_type: 'gsta'
+N_S: 4
+N_T: 8
+hid_S: 64
+his_T: 256
