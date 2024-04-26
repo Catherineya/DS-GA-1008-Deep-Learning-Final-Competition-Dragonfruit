@@ -60,7 +60,7 @@ class Base_method(pl.LightningModule):
         '''
         pred_y = self(*batch)
         batch_y = batch[-1]
-        # print('prediction shape', pred_y1, 'truth shape', batch_y)
+        print('prediction shape', pred_y, 'truth shape', batch_y)
         loss = self.criterion(pred_y, batch_y)
         eval_res, eval_log = metric(
             pred = pred_y.cpu().numpy(), 
@@ -76,6 +76,11 @@ class Base_method(pl.LightningModule):
         eval_res['val_loss'] = loss
         for key, value in eval_res.items():
             self.log(key, value, on_step=True, on_epoch=True, prog_bar=False)
+        
+        # evaluate the last frame only
+        # eval_last_res, eval_last_log
+
+        
 
         # log_note = [f'{key}: {value}' for key, value in eval_res.items()]
         # log_note = ', '.join( ._note)

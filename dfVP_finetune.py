@@ -16,7 +16,6 @@ from dragonfruitvp.data.custom_dataset import CompetitionDataset
 if __name__ == "__main__":
     args = create_parser().parse_args()
     config = vars(args)
-    print('original scheduler', config['sched'])
 
     with open(config['model_config_file']) as model_config_file:
         custom_model_config = yaml.safe_load(model_config_file)
@@ -51,8 +50,6 @@ if __name__ == "__main__":
         hidden_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=1
     )    
 
-    print('dataloader type', type(dataloader_val))
-
     # update the training config
     config.update(custom_training_config)
     # update the model config
@@ -63,7 +60,6 @@ if __name__ == "__main__":
 
     config['vp_weight'] = os.path.join(config['res_dir'], config['pretrain'] + '_' + config['model_config_file'][:-5].split('/')[-1], 'checkpoints', 'best.ckpt')
     config['unet_weight'] = os.path.join(config['res_dir'],'unet', 'best_model.pth')
-    print('scheduler: ', config['sched'])
 
     exp = DragonFruitFinetune(args, dataloaders=(dataloader_train, dataloader_val, dataloader_hidden), strategy='auto')
 

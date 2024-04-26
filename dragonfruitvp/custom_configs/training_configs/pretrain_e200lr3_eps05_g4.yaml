@@ -16,4 +16,6 @@ res_dir: 'weights_hub'
 gpus:
   - 0
   - 1
+  - 2
+  - 3
 

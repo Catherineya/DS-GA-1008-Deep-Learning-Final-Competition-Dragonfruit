@@ -29,3 +29,25 @@ TODO
 ## File Structure
 - `weights_hub`: All model weights will be saved here. Could be changed in configuration.
 - `lightning_logs`: Logs saved by pytorch lightning during training
+
+## Connet to GCP
+### Login burst
+```
+ssh burst
+```
+### Interactive runtime
+CPU:
+```
+srun --partition=interactive --account csci_ga_2572_002-2024sp-12 --time=04:00:00 --pty /bin/bash
+```
+GPU:
+```
+srun --partition=n1s8-v100-1 --gres=gpu:1 --account csci_ga_2572_002-2024sp-12 --time=04:00:00 --pty /bin/bash
+```
+### Send files
+```
+scp <NetID>@greene-dtn.hpc.nyu.edu:/path/to/files /home/<NetID>/
+```
+For sending the whole folder:
+```
+scp -r <NetID>@greene-dtn.hpc.nyu.edu:/path/to/folder /home/<NetID>/

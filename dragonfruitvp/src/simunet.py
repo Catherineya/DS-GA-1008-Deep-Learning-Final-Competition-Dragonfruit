@@ -9,9 +9,15 @@ from dragonfruitvp.utils.main import load_model_weights
 from dragonfruitvp.utils.metrics import metric
 
 class SimUNet(Base_method):
-    def __init__(self, **kwargs):
+    def __init__(self, alpha=2.0, beta=1.0, gamma=1.0, **kwargs):
+        '''
+        mask loss: alpha * pmask + beta * tmask_pre + gamma * tmask_aft
+        '''
         super().__init__(**kwargs)
         self.criterion = nn.CrossEntropyLoss() # use crossentropy for unet
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
 
     def _build_model(self, **kwargs):
         return SimUNet_Model(**kwargs)
@@ -83,7 +89,7 @@ class SimUNet(Base_method):
         for key, value in eval_res.items():
             self.log(key, value, on_step=True, on_epoch=True, prog_bar=False)
 
-        print('\n iou:', eval_res['iou'], '\n')
+        # print('\n iou:', eval_res['iou'], '\n')
 
         # log_note = [f'{key}: {value}' for key, value in eval_res.items()]
         # log_note = ', '.join(log_note)
@@ -97,6 +103,8 @@ class SimUNet_Model(nn.Module):
         super().__init__()
         self.vp = SimVP(**kwargs)
         self.unet = UNet()
+
+        print('vp config:', 'load_vp', load_vp, 'fix_vp', fix_vp, 'load_unet', load_unet, 'fix_unet', fix_unet)
 
         #load weights 
         if load_vp:
