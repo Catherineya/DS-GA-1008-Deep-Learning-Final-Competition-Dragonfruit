@@ -64,6 +64,7 @@ def create_parser():
     parser.add_argument('--drop_path', type=float, default=0.0, help='Drop path rate for SimVP (default: 0.)')
     parser.add_argument('--overwrite', action='store_true', default=False,
                         help='Whether to allow overwriting the provided config file with args')
+    parser.add_argument('--eps', type=float, default=0.0, help='Controls how much extra weight is put on the 22th frame')
 
     # Training parameters (optimizer)
     parser.add_argument('--epoch', '-e', default=None, type=int, help='end epochs (default: 200)')
@@ -146,6 +147,7 @@ def default_parser():
         'drop': 0,
         'drop_path': 0,
         'overwrite': False,
+        'eps': 0,
         # Training parameters (optimizer)
         'epoch': 200,
         'log_step': 1,

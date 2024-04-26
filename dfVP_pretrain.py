@@ -39,7 +39,7 @@ if __name__ == "__main__":
     config.update(custom_training_config)
     # update the model config
     config.update(custom_model_config)
-    config['ex_name'] = config['model_config_file'][:-5].split('/')[-1] + '_' + config['training_config_file'][:-5].split('/')[-1]
+    config['ex_name'] = config['training_config_file'][:-5].split('/')[-1] + config['model_config_file'][:-5].split('/')[-1]
     # print(config['ex_name'], type(config['ex_name']))
     print('model weights will be exported to: ', os.path.join(config['res_dir'], config['ex_name']))
 

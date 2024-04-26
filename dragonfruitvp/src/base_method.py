@@ -47,11 +47,20 @@ class Base_method(pl.LightningModule):
         NotImplementedError
     
     def validation_step(self, batch, batch_idx):
-        if len(batch) == 3:
-            batch_x, _, batch_y = batch
-        else:
-            batch_x, batch_y = batch
-        pred_y = self(batch_x, batch_y)
+        # if len(batch) == 3:
+        #     batch_x, _, batch_y = batch
+        # else:
+        #     batch_x, batch_y = batch
+        # pred_y = self(batch_x, batch_y)
+        # TODO: check if this works
+        '''
+        if dataset i labeled, we use it to train unet, the batch is [pre_seqs, aft_seqs, masks]
+        if dataset is unlabeled, we use it to pretrain vp, batch is [pre_seqs, aft_seqs]
+        hidden dataset will never be used for validation
+        '''
+        pred_y = self(*batch)
+        batch_y = batch[-1]
+        # print('prediction shape', pred_y1, 'truth shape', batch_y)
         loss = self.criterion(pred_y, batch_y)
         eval_res, eval_log = metric(
             pred = pred_y.cpu().numpy(), 
@@ -69,16 +78,13 @@ class Base_method(pl.LightningModule):
             self.log(key, value, on_step=True, on_epoch=True, prog_bar=False)
 
         # log_note = [f'{key}: {value}' for key, value in eval_res.items()]
-        # log_note = ', '.join(log_note)
+        # log_note = ', '.join( ._note)
 
         # self.log(f'{log_note}, val_loss', loss, on_step=True, on_epoch=True, prog_bar=False) # refer to the lightning built in logger
         return loss
     
     def test_step(self, batch, batch_idx):
-        if len(batch) == 3:
-            batch_x, _, batch_y = batch
-        else:
-            batch_x, batch_y = batch
+        batch_x, batch_y = batch
         batch_x, batch_y = batch
         pred_y = self(batch_x, batch_y)
         outputs = {'inputs': batch_x.cpu().numpy(), 'preds': pred_y.cpu().numpy(), 'trues': batch_y.cpu().numpy()}

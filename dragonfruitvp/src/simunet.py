@@ -6,10 +6,12 @@ from dragonfruitvp.src.base_method import Base_method
 from dragonfruitvp.src.simvp import SimVP_Model, SimVP
 from dragonfruitvp.src.unet import UNet
 from dragonfruitvp.utils.main import load_model_weights
+from dragonfruitvp.utils.metrics import metric
 
 class SimUNet(Base_method):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.criterion = nn.CrossEntropyLoss() # use crossentropy for unet
 
     def _build_model(self, **kwargs):
         return SimUNet_Model(**kwargs)
@@ -17,19 +19,77 @@ class SimUNet(Base_method):
     def forward(self, batch_x, batch_x_aft=None, batch_y=None, **kwargs):
         pre_seq_length, aft_seq_length = self.hparams.pre_seq_length, self.hparams.aft_seq_length
         assert pre_seq_length == aft_seq_length
+        # print('batch_x shape: ', batch_x.shape, 'batch_x_aft shape: ', batch_x_aft.shape)
         if batch_x_aft is not None:
-            pred_y1, pred_y2 = self.model(batch_x, batch_x_aft)
-            return pred_y1, pred_y2
+            pmask, tmask_pre, tmask_aft = self.model(batch_x, batch_x_aft)
+            return pmask, tmask_pre, tmask_aft
         else:
-            pred_y = self.model(batch_x)
-            return pred_y
+            pmask = self.model(batch_x)
+            return pmask
     
     def training_step(self, batch, batch_idx):
         assert len(batch) == 3
         batch_x, batch_aft, batch_y = batch
 
-        pred_y1, pred_y2 = self(batch_x, batch_aft, batch_y)
-        loss = self.criterion(pred_y1, batch_y)
+        pmask, tmask_pre, tmask_aft = self(batch_x, batch_aft, batch_y)
+
+        B, T, H, W = batch_y.shape
+        t = T // 2
+        batch_py = batch_y[:,t:,:,:].reshape(B*t, H, W)
+        batch_ty_pre = batch_y[:,:t,:,:].reshape(B*t, H, W)
+        batch_ty_aft = batch_py
+
+        loss = 2 * self.criterion(pmask, batch_py) + self.criterion(tmask_pre, batch_ty_pre) + self.criterion(tmask_aft, batch_ty_aft) #TODO
+        # loss = self.criterion(pred_y1, batch_y) + self.criterion(pred_y2, batch_y)
+        assert loss is not None
+        self.log('train_loss', loss, on_step=True, prog_bar=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        # TODO: check if this works
+        '''
+        if dataset is labeled, we use it to train unet, the batch is [pre_seqs, aft_seqs, masks]
+        if dataset is unlabeled, we use it to pretrain vp, batch is [pre_seqs, aft_seqs]
+        hidden dataset will never be used for validation
+        p: masks predicted with output frames from SimVP
+        t: masks predicted with input ground truth frames
+        '''
+        assert len(batch) == 3
+        batch_x, batch_aft, batch_y = batch
+        pmask, tmask_pre, tmask_aft = self(batch_x, batch_aft, batch_y)
+        # print('prediction shape', pmask.shape, 'truth shape', tmask_pre.shape, tmask_aft.shape, 'mask shape', batch_y.shape)
+        B, T, H, W = batch_y.shape
+        t = T // 2
+        batch_py = batch_y[:,t:,:,:].reshape(B*t, H, W)
+        batch_ty_pre = batch_y[:,:t,:,:].reshape(B*t, H, W)
+        batch_ty_aft = batch_py
+
+        # print('pmask shape:', pmask.shape, 'batch_py shape:', batch_py.shape)
+
+        loss = self.criterion(pmask, batch_py)
+        assert loss is not None
+        eval_res, eval_log = metric(
+            pred = pmask.cpu().numpy(), 
+            true = batch_py.cpu().numpy(), 
+            mean = self.hparams.test_mean,
+            std = self.hparams.test_std,
+            metrics = self.metric_list,
+            channel_names = self.channel_names,
+            spatial_norm = self.spatial_norm,
+            threshold = self.hparams.get('metric_threshold', None)
+        )
+
+        eval_res['val_loss'] = loss
+        for key, value in eval_res.items():
+            self.log(key, value, on_step=True, on_epoch=True, prog_bar=False)
+
+        print('\n iou:', eval_res['iou'], '\n')
+
+        # log_note = [f'{key}: {value}' for key, value in eval_res.items()]
+        # log_note = ', '.join(log_note)
+
+        # self.log(f'{log_note}, val_loss', loss, on_step=True, on_epoch=True, prog_bar=False) # refer to the lightning built in logger
+        return loss
 
 
 class SimUNet_Model(nn.Module):
@@ -57,13 +117,20 @@ class SimUNet_Model(nn.Module):
         # self.unet.load_state_dict(unet_statedict)
 
     
-    def forward(self, x_raw, x_aft, mask, **kwargs):
+    def forward(self, x_raw, x_aft, **kwargs):
+        # print('shape of input x in simunet: ', x_raw.shape)
+        B, T, C, H, W = x_raw.shape
+
         x_pred = self.vp(x_raw)
-        Y1 = self.unet(x_pred) # predict the mask using predicted frame
+        x_pred = x_pred.reshape(B*T, C, H, W) # reshape the batch here
+
+        pmask = self.unet(x_pred) # predict masks using predicted frame
         if x_aft is not None:
-            Y2 = self.unet(x_aft) # predict the mask using real frame
-            return Y1, Y2
+            x_aft = x_aft.reshape(B*T, C, H, W)
+            tmask_pre = self.unet(x_raw.reshape(B*T, C, H, W)) # predict masks for first 11 frames
+            tmask_aft = self.unet(x_aft) # predict masks for last 11 frames
+            return pmask, tmask_pre, tmask_aft
         else:
-            return Y1
+            return pmask
 
         

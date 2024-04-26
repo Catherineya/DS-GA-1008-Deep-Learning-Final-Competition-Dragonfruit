@@ -8,9 +8,13 @@ from dragonfruitvp.modules import (ConvSC, ConvNeXtSubBlock, ConvMixerSubBlock, 
 
 
 class SimVP(Base_method):
-    def __init__(self, **kwargs):
+    def __init__(self, eps=0, **kwargs):
+        '''
+        eps: controls how much extra weight is put on the last frame prediction, default to be 0
+        ''' 
         super().__init__(**kwargs)
-    
+        self.eps = eps
+
     def _build_model(self, **kwargs):
         return SimVP_Model(**kwargs)
     
@@ -44,7 +48,7 @@ class SimVP(Base_method):
         else:
             batch_x, batch_y = batch
         pred_y = self(batch_x)
-        loss = self.criterion(pred_y, batch_y)
+        loss = self.criterion(pred_y, batch_y) + self.eps*self.criterion(pred_y[:,-1,:,:,:], batch_y[:,-1,:,:,:])
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
 
@@ -74,6 +78,7 @@ class SimVP_Model(nn.Module):
             self.hid = MidMetaNet(T*hid_S, hid_T, N_T,
                 input_resolution=(H, W), model_type=model_type,
                 mlp_ratio=mlp_ratio, drop=drop, drop_path=drop_path)
+
         
     def forward(self, x_raw, **kwargs):
         B, T, C, H, W = x_raw.shape

@@ -19,7 +19,7 @@ singularity exec --nv \
 ${sif_path} /bin/bash -c "
     source /ext3/env.sh
     conda activate base
-    python dfVP_pretrain.py \
-        --model_config_file 'dragonfruitvp/custom_configs/model_configs/guo_swin.yaml'\
+    python dfVP_finetune.py \
+        --model_config_file 'dragonfruitvp/custom_configs/model_configs/guo_gsta.yaml'\
         --training_config_file 'dragonfruitvp/custom_configs/training_configs/pretrain_e3lr3_eps05.yaml'
 "

@@ -176,7 +176,7 @@ model.to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-jaccard = torchmetrics.JaccardIndex(num_classes=49)
+jaccard = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
 num_epochs = 5
 for epoch in range(num_epochs):
     model.train()
@@ -184,8 +184,10 @@ for epoch in range(num_epochs):
     train_iou = 0
     for images, masks in tqdm(train_loader):
         images, masks = images.to(device), masks.to(device)
+        print('shape of gt masks', masks.shape)
         optimizer.zero_grad()
         outputs = model(images)
+        print('shape of pred masks', outputs.shape)
         loss = criterion(outputs, masks)
         loss.backward()
         optimizer.step()

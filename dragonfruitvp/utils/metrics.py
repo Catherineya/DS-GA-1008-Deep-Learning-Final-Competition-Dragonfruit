@@ -187,7 +187,7 @@ def metric(pred, true, mean=None, std=None, metrics=['mae', 'mse'],
         true = true * std + mean
     eval_res = {}
     eval_log = ""
-    allowed_metrics = ['mae', 'mse', 'rmse', 'ssim', 'psnr', 'snr', 'lpips', 'pod', 'sucr', 'csi']
+    allowed_metrics = ['mae', 'mse', 'rmse', 'ssim', 'psnr', 'snr', 'lpips', 'pod', 'sucr', 'csi', 'iou']
     invalid_metrics = set(metrics) - set(allowed_metrics)
     if len(invalid_metrics) != 0:
         raise ValueError(f'metric {invalid_metrics} is not supported.')
@@ -274,11 +274,17 @@ def metric(pred, true, mean=None, std=None, metrics=['mae', 'mse'],
         eval_res['lpips'] = lpips / (pred.shape[0] * pred.shape[1])
 
     if 'iou' in metrics:
-        print(pred.shape)
-        print(true.shape)
+        # print(pred.shape)
+        # print(true.shape)
         jaccard = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
 
-        # TODO
+        pred_tensor = torch.from_numpy(pred)
+        true_tensor = torch.from_numpy(true)
+
+        _, pred_tensor = torch.max(pred_tensor, 1)
+
+        iou = jaccard(pred_tensor, true_tensor).item()
+        eval_res['iou'] = iou
 
     if return_log:
         for k, v in eval_res.items():
