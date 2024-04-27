@@ -39,7 +39,7 @@ if __name__ == "__main__":
     config.update(custom_training_config)
     # update the model config
     config.update(custom_model_config)
-    config['ex_name'] = config['training_config_file'][:-5].split('/')[-1] + config['model_config_file'][:-5].split('/')[-1]
+    config['ex_name'] = config['training_config_file'][:-5].split('/')[-1] + '_' + config['model_config_file'][:-5].split('/')[-1]
     # print(config['ex_name'], type(config['ex_name']))
     print('model weights will be exported to: ', os.path.join(config['res_dir'], config['ex_name']))
 
@@ -48,19 +48,21 @@ if __name__ == "__main__":
 
     # load dataset
     limit = -1
-    base_datadir = '/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset'
+    # base_datadir = '/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset'
+    base_datadir = '../dataset'
     train_set = CompetitionDataset(os.path.join(base_datadir, 'train'), dataset_type='unlabeled', limit=limit) # we treat trainset as unlabeled here
     val_set = CompetitionDataset(os.path.join(base_datadir, 'val'), dataset_type='unlabeled', limit=limit)
     unlabeled_set = CompetitionDataset(os.path.join(base_datadir, 'unlabeled'), dataset_type='unlabeled', limit=limit)
 
+    num_workers = config['num_workers']
     dataloader_train = torch.utils.data.DataLoader(
-        train_set, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=1
+        train_set, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=num_workers
     )
     dataloader_val = torch.utils.data.DataLoader(
-        val_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=1
+        val_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=num_workers
     )
     dataloader_unlabeled = torch.utils.data.DataLoader(
-        unlabeled_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=1
+        unlabeled_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=num_workers
     )
 
     # start pretraining, use unlabeled as training data, val as validation, train as test

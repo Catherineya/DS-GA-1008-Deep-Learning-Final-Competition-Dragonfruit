@@ -30,26 +30,6 @@ if __name__ == "__main__":
             config[attribute] = default_values[attribute]
     # custom_training_config['batch_size'] = 8
 
-    # Define some hyper parameters
-    BATCH_SIZE=custom_training_config['batch_size']
-
-    limit = -1
-    base_datadir = '/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset'
-    train_set = CompetitionDataset(os.path.join(base_datadir, 'train'), dataset_type='labeled', limit=limit) # we treat trainset as unlabeled here
-    val_set = CompetitionDataset(os.path.join(base_datadir, 'val'), dataset_type='labeled', limit=limit)
-    hidden_set = CompetitionDataset(os.path.join(base_datadir, 'hidden'), dataset_type='hidden', limit=limit)
-
-    dataloader_train = torch.utils.data.DataLoader(
-        train_set, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=1
-    )
-    dataloader_val = torch.utils.data.DataLoader(
-        val_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=1
-    )
-
-    dataloader_hidden = torch.utils.data.DataLoader(
-        hidden_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=1
-    )    
-
     # update the training config
     config.update(custom_training_config)
     # update the model config
@@ -60,6 +40,28 @@ if __name__ == "__main__":
 
     config['vp_weight'] = os.path.join(config['res_dir'], config['pretrain'] + '_' + config['model_config_file'][:-5].split('/')[-1], 'checkpoints', 'best.ckpt')
     config['unet_weight'] = os.path.join(config['res_dir'],'unet', 'best_model.pth')
+
+    # Define some hyper parameters
+    BATCH_SIZE=custom_training_config['batch_size']
+
+    limit = -1
+    base_datadir = '/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset'
+    train_set = CompetitionDataset(os.path.join(base_datadir, 'train'), dataset_type='labeled', limit=limit) # we treat trainset as unlabeled here
+    val_set = CompetitionDataset(os.path.join(base_datadir, 'val'), dataset_type='labeled', limit=limit)
+    hidden_set = CompetitionDataset(os.path.join(base_datadir, 'hidden'), dataset_type='hidden', limit=limit)
+
+    num_workers = config['num_workers']
+    dataloader_train = torch.utils.data.DataLoader(
+        train_set, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=num_workers
+    )
+    dataloader_val = torch.utils.data.DataLoader(
+        val_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=num_workers
+    )
+
+    dataloader_hidden = torch.utils.data.DataLoader(
+        hidden_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=num_workers
+    )    
+
 
     exp = DragonFruitFinetune(args, dataloaders=(dataloader_train, dataloader_val, dataloader_hidden), strategy='auto')
 

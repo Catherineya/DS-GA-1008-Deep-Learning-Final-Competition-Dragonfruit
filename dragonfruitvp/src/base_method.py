@@ -60,7 +60,7 @@ class Base_method(pl.LightningModule):
         '''
         pred_y = self(*batch)
         batch_y = batch[-1]
-        print('prediction shape', pred_y, 'truth shape', batch_y)
+        # print('prediction shape', pred_y.shape, 'truth shape', batch_y.shape)
         loss = self.criterion(pred_y, batch_y)
         eval_res, eval_log = metric(
             pred = pred_y.cpu().numpy(), 
@@ -78,7 +78,21 @@ class Base_method(pl.LightningModule):
             self.log(key, value, on_step=True, on_epoch=True, prog_bar=False)
         
         # evaluate the last frame only
-        # eval_last_res, eval_last_log
+        pred_y_last = pred_y[:,-1,:,:,:]
+        batch_y_last = batch_y[:,-1,:,:,:]
+        eval_last_res, eval_last_log = metric(
+            pred = pred_y_last.cpu().numpy(), 
+            true = batch_y_last.cpu().numpy(), 
+            mean = self.hparams.test_mean,
+            std = self.hparams.test_std,
+            metrics = self.metric_list,
+            channel_names = self.channel_names,
+            spatial_norm = self.spatial_norm,
+            threshold = self.hparams.get('metric_threshold', None)
+        )
+        for key, value in eval_last_res.items():
+            self.log(f'last frame {key}', value, on_step=True, on_epoch=True, prog_bar=False)
+
 
         
 

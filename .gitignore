@@ -1,2 +1,6 @@
 dataset/
+weights_hub/
+lightning_logs/
+*.out
+**/__pycache__/
 .ipynb_checkpoints
