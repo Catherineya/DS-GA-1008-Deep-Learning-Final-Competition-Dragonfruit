@@ -16,7 +16,8 @@ class CompetitionDataset(Dataset):
         limit: just used for quick debugging
         '''
         super().__init__()
-        self.video_folders = [f for f in sorted(Path(directory).iterdir()) if f.is_dir()][:limit]
+        # sort, and elimiate video_01370 from validation
+        self.video_folders = [f for f in sorted(Path(directory).iterdir()) if f.is_dir() and f.name != 'video_01370'][:limit]
         self.dataset_type = dataset_type
 
         # self.data_name = data_name #TODO: try if data_name is not defined

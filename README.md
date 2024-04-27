@@ -38,7 +38,7 @@ ssh burst
 ### Interactive runtime
 CPU:
 ```
-srun --partition=interactive --account csci_ga_2572_002-2024sp-12 --time=04:00:00 --pty /bin/bash
+srun --partition=interactive --account csci_ga_2572_002-2024sp-12 --pty /bin/bash
 ```
 GPU:
 ```
