@@ -1,0 +1,22 @@
+pre_seq_length: 11
+aft_seq_length: 11
+total_length: 22
+batch_size: 8
+val_batch_size: 8
+epoch: 20
+lr: 0.001
+metrics: 
+  - 'mse'
+  - 'mae'
+  - 'ssim'
+dataname: 'custom'
+in_shape: [11, 3, 160, 240]
+eps: 1
+res_dir: 'weights_hub'
+gpus:
+  - 0
+  - 1
+  - 2
+  - 3
+num_workers: 11
+

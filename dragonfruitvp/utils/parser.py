@@ -168,7 +168,8 @@ def default_parser():
         'final_div_factor': 1e4,
         'warmup_epoch': 0,
         'decay_epoch': 100,
-        'decay_rate': 0.1,
+        # 'decay_rate': 0.1,
+        'decay_rate':1, # no decay
         'filter_bias_and_bn': False,
         # Lightning parameters
         'gpus': [0],

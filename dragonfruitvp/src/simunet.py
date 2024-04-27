@@ -7,6 +7,7 @@ from dragonfruitvp.src.simvp import SimVP_Model, SimVP
 from dragonfruitvp.src.unet import UNet
 from dragonfruitvp.utils.main import load_model_weights
 from dragonfruitvp.utils.metrics import metric
+from dragonfruitvp.utils.vis import save_masks
 
 class SimUNet(Base_method):
     def __init__(self, alpha=2.0, beta=1.0, gamma=1.0, **kwargs):
@@ -45,7 +46,7 @@ class SimUNet(Base_method):
         batch_ty_pre = batch_y[:,:t,:,:].reshape(B*t, H, W)
         batch_ty_aft = batch_py
 
-        loss = 2 * self.criterion(pmask, batch_py) + self.criterion(tmask_pre, batch_ty_pre) + self.criterion(tmask_aft, batch_ty_aft) #TODO
+        loss = self.alpha * self.criterion(pmask, batch_py) + self.beta * self.criterion(tmask_pre, batch_ty_pre) + self.gamma * self.criterion(tmask_aft, batch_ty_aft)
         # loss = self.criterion(pred_y1, batch_y) + self.criterion(pred_y2, batch_y)
         assert loss is not None
         self.log('train_loss', loss, on_step=True, prog_bar=True)
@@ -88,6 +89,17 @@ class SimUNet(Base_method):
         eval_res['val_loss'] = loss
         for key, value in eval_res.items():
             self.log(key, value, on_step=True, on_epoch=True, prog_bar=False)
+
+        
+        save_path = f'masks_vis/batch_{batch_idx}'
+        _, pmask_vis = torch.max(pmask, 1)
+        _, tmask_pre_vis = torch.max(tmask_pre, 1)
+        _, tmask_aft_vis = torch.max(tmask_aft, 1)
+        save_masks(pmask_vis, save_path, 'aft_pmask')
+        save_masks(tmask_pre_vis, save_path, 'pre_tmask')
+        save_masks(tmask_aft_vis, save_path, 'aft_tmask')
+        save_masks(batch_ty_pre, save_path, 'pre_label')
+        save_masks(batch_ty_aft, save_path, 'aft_label')
 
         # print('\n iou:', eval_res['iou'], '\n')
 

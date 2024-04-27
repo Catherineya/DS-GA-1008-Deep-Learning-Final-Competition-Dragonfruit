@@ -1,0 +1,22 @@
+pre_seq_length: 11
+aft_seq_length: 11
+total_length: 22
+batch_size: 4
+val_batch_size: 4
+epoch: 50
+lr: 0.001
+sched: step
+metrics: 
+  - 'iou'
+dataname: 'custom'
+in_shape: [11, 3, 160, 240]
+res_dir: 'weights_hub'
+pretrain: 'pretrain_e20lr3_eps05_ltn'
+load_vp: True
+fix_vp: True
+load_unet: False
+fix_unet: False
+gpus:
+  - 0
+
+

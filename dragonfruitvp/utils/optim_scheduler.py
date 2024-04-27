@@ -152,12 +152,17 @@ def get_optim_scheduler(args, epoch, model, steps_per_epoch):
             warmup_t=args.warmup_epoch,
             t_in_epochs=True)  # update lr by_epoch
     elif sched_lower == 'step':
-        lr_scheduler = StepLRScheduler(
+        lr_scheduler = optim.lr_scheduler.StepLR(
             optimizer,
-            decay_t=args.decay_epoch,
-            decay_rate=args.decay_rate,
-            warmup_lr_init=args.warmup_lr,
-            warmup_t=args.warmup_epoch)
+            gamma=args.decay_rate,
+            step_size=args.decay_epoch
+        )
+        # lr_scheduler = StepLRScheduler(
+        #     optimizer,
+        #     decay_t=args.decay_epoch,
+        #     decay_rate=args.decay_rate,
+        #     warmup_lr_init=args.warmup_lr,
+        #     warmup_t=args.warmup_epoch)
     elif sched_lower == 'multistep':
         lr_scheduler = MultiStepLRScheduler(
             optimizer,
