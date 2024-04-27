@@ -28,7 +28,7 @@ def create_parser():
     parser.add_argument('--batch_size', '-b', default=16, type=int, help='Training batch size')
     parser.add_argument('--val_batch_size', '-vb', default=16, type=int, help='Validation batch size')
     parser.add_argument('--num_workers', default=4, type=int)
-    parser.add_argument('--data_root', default='./data')
+    parser.add_argument('--data_root', default='./dataset')
     parser.add_argument('--dataname', '-d', default='mmnist', type=str,
                         choices=['bair', 'mfmnist', 'mmnist', 'mmnist_cifar', 'noisymmnist', 'taxibj', 'human',
                                 'kth', 'kth20', 'kth40', 'kitticaltech', 'kinetics', 'kinetics400', 'kinetics600',
@@ -65,6 +65,9 @@ def create_parser():
     parser.add_argument('--overwrite', action='store_true', default=False,
                         help='Whether to allow overwriting the provided config file with args')
     parser.add_argument('--eps', type=float, default=0.0, help='Controls how much extra weight is put on the 22th frame')
+    parser.add_argument('--alpha', type=float, default=0.8, help='in finetuning, weight for loss on mask predicted on vp predicted frame')
+    parser.add_argument('--beta', type=float, default=1.0, help='in finetuning, weight for loss on mask predicted on 0-10 ground truth frame')
+    parser.add_argument('--gamma', type=float, default=0.2, help='in finetuning, weight for loss on mask predicted on 11-21 ground truth frame')
 
     # Training parameters (optimizer)
     parser.add_argument('--epoch', '-e', default=None, type=int, help='end epochs (default: 200)')
@@ -131,7 +134,7 @@ def default_parser():
         'batch_size': 16,
         'val_batch_size': 16,
         'num_workers': 4,
-        'data_root': './data',
+        'data_root': '/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset',
         'dataname': 'mmnist',
         'pre_seq_length': 10,
         'aft_seq_length': 10,
@@ -148,6 +151,9 @@ def default_parser():
         'drop_path': 0,
         'overwrite': False,
         'eps': 0,
+        'alpha': 0.8,
+        'beta': 1.0,
+        'gamma': 0.2,
         # Training parameters (optimizer)
         'epoch': 200,
         'log_step': 1,

@@ -13,6 +13,7 @@ dataname: 'custom'
 in_shape: [11, 3, 160, 240]
 eps: 1
 res_dir: 'weights_hub'
+data_root: ./dataset'
 gpus:
   - 0
   - 1

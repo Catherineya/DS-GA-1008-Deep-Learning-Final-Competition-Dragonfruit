@@ -49,7 +49,7 @@ if __name__ == "__main__":
     # load dataset
     limit = -1
     # base_datadir = '/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset'
-    base_datadir = '../dataset'
+    base_datadir = config['data_root']
     train_set = CompetitionDataset(os.path.join(base_datadir, 'train'), dataset_type='unlabeled', limit=limit) # we treat trainset as unlabeled here
     val_set = CompetitionDataset(os.path.join(base_datadir, 'val'), dataset_type='unlabeled', limit=limit)
     unlabeled_set = CompetitionDataset(os.path.join(base_datadir, 'unlabeled'), dataset_type='unlabeled', limit=limit)

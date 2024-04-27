@@ -11,6 +11,7 @@ metrics:
 dataname: 'custom'
 in_shape: [11, 3, 160, 240]
 res_dir: 'weights_hub'
+data_root: '/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset'
 pretrain: 'pretrain_e20lr3_eps05_ltn'
 load_vp: True
 fix_vp: True
