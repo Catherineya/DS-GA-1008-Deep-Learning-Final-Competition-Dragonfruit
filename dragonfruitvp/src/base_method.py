@@ -22,7 +22,7 @@ class Base_method(pl.LightningModule):
         self.criterion = nn.MSELoss()
         self.test_outputs = []
 
-        self.vis_val = True # draw pictures during validation
+        self.vis_val = kwargs['vis_val'] # draw pictures during validation
     
     def _build_model(self):
         raise NotImplementedError

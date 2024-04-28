@@ -1,3 +1,5 @@
+import os
+
 import torch
 from torch import nn
 
@@ -6,6 +8,8 @@ from dragonfruitvp.modules import (ConvSC, ConvNeXtSubBlock, ConvMixerSubBlock, 
                                    HorNetSubBlock, MLPMixerSubBlock, MogaSubBlock, PoolFormerSubBlock,
                                    SwinSubBlock, UniformerSubBlock, VANSubBlock, ViTSubBlock, TAUSubBlock)
 
+from dragonfruitvp.utils.metrics import metric
+from dragonfruitvp.utils.vis import save_images
 
 class SimVP(Base_method):
     def __init__(self, eps=0, **kwargs):
@@ -94,8 +98,8 @@ class SimVP(Base_method):
         for key, value in eval_last_res.items():
             self.log(f'last frame {key}', value, on_step=True, on_epoch=True, prog_bar=False)
 
-        if self.vis_var:
-            for b in range(len(pred_y.shape[0])):
+        if self.vis_val:
+            for b in range(pred_y.shape[0]):
                 save_path = os.path.join('vis_pretrain', f'{batch_idx}_{b}')
                 frames_pred = pred_y[b]
                 frames_true = batch_y[b]

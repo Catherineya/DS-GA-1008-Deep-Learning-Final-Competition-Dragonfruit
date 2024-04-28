@@ -1,8 +1,8 @@
 pre_seq_length: 11
 aft_seq_length: 11
 total_length: 22
-batch_size: 16
-val_batch_size: 16
+batch_size: 8
+val_batch_size: 8
 epoch: 3
 lr: 0.001
 metrics: 
