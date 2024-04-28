@@ -110,7 +110,7 @@ class DragonFruitFinetune:
         val_true_iou = []
         for pre_seq, aft_seq, masks in tqdm(self.data.val_dataloader(), total=len(self.data.val_dataloader())):
             pre_seq, aft_seq, masks = pre_seq.to(self.device), aft_seq.to(self.device), masks.to(self.device)
-            pmask, tmask_pre, tmask_aft = self.method(batch_x=pre_seq, batch_x_aft=aft_seq)
+            x_pred, pmask, tmask_pre, tmask_aft = self.method(batch_x=pre_seq, batch_x_aft=aft_seq)
             # print(masks_pred1.shape, masks_pred2.shape, masks.shape)
             B, T, _, _, _ = pre_seq.shape
 

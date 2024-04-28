@@ -3,4 +3,4 @@ model_type: 'gsta'
 N_S: 4
 N_T: 24
 hid_S: 128
-his_T: 1024
+hid_T: 1024

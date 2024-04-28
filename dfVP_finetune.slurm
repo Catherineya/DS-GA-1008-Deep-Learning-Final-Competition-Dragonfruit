@@ -21,5 +21,5 @@ ${sif_path} /bin/bash -c "
     conda activate base
     python dfVP_finetune.py \
         --model_config_file 'dragonfruitvp/custom_configs/model_configs/guo_gsta.yaml'\
-        --training_config_file 'dragonfruitvp/custom_configs/training_configs/finetune_e50lr3_e20ltn.yaml'
+        --training_config_file 'dragonfruitvp/custom_configs/training_configs/finetune_e50lr3_e20ltn_true.yaml'
 "

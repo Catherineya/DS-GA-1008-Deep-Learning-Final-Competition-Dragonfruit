@@ -109,6 +109,9 @@ def create_parser():
     parser.add_argument('--filter_bias_and_bn', type=bool, default=False,
                         help='Whether to set the weight decay of bias and bn to 0')
 
+    # visualization
+    parser.add_argument('--vis_val', default=True, type=bool, help='whether save images during validation')
+
     # lightning
     parser.add_argument('--gpus', nargs='+', default=[0], type=int)
     parser.add_argument('--metric_for_bestckpt', default='val_loss', type=str)
@@ -174,9 +177,10 @@ def default_parser():
         'final_div_factor': 1e4,
         'warmup_epoch': 0,
         'decay_epoch': 100,
-        # 'decay_rate': 0.1,
         'decay_rate':1, # no decay
         'filter_bias_and_bn': False,
+        # visualization
+        'vis_val': True,
         # Lightning parameters
         'gpus': [0],
         'metric_for_bestckpt': 'val_loss',

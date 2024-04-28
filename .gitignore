@@ -1,6 +1,10 @@
 dataset/
 weights_hub/
 lightning_logs/
+masks_vis/
+vis*/
 *.out
 **/__pycache__/
 .ipynb_checkpoints
+*.tar
+*.gz

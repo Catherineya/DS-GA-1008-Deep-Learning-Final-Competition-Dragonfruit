@@ -52,6 +52,57 @@ class SimVP(Base_method):
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
 
+    def validation_step(self, batch, batch_idx):
+        '''
+        if dataset i labeled, we use it to train unet, the batch is [pre_seqs, aft_seqs, masks]
+        if dataset is unlabeled, we use it to pretrain vp, batch is [pre_seqs, aft_seqs]
+        hidden dataset will never be used for validation
+        '''
+        assert len(batch) == 2
+        batch_x, batch_y = batch
+        pred_y = self(batch_x, batch_y)
+        # print('prediction shape', pred_y.shape, 'truth shape', batch_y.shape)
+        loss = self.criterion(pred_y, batch_y)
+        eval_res, eval_log = metric(
+            pred = pred_y.cpu().numpy(), 
+            true = batch_y.cpu().numpy(), 
+            mean = self.hparams.test_mean,
+            std = self.hparams.test_std,
+            metrics = self.metric_list,
+            channel_names = self.channel_names,
+            spatial_norm = self.spatial_norm,
+            threshold = self.hparams.get('metric_threshold', None)
+        )
+
+        eval_res['val_loss'] = loss
+        for key, value in eval_res.items():
+            self.log(key, value, on_step=True, on_epoch=True, prog_bar=False)
+        
+        # evaluate the last frame only
+        pred_y_last = pred_y[:,-1,:,:,:]
+        batch_y_last = batch_y[:,-1,:,:,:]
+        eval_last_res, eval_last_log = metric(
+            pred = pred_y_last.cpu().numpy(), 
+            true = batch_y_last.cpu().numpy(), 
+            mean = self.hparams.test_mean,
+            std = self.hparams.test_std,
+            metrics = self.metric_list,
+            channel_names = self.channel_names,
+            spatial_norm = self.spatial_norm,
+            threshold = self.hparams.get('metric_threshold', None)
+        )
+        for key, value in eval_last_res.items():
+            self.log(f'last frame {key}', value, on_step=True, on_epoch=True, prog_bar=False)
+
+        if self.vis_var:
+            for b in range(len(pred_y.shape[0])):
+                save_path = os.path.join('vis_pretrain', f'{batch_idx}_{b}')
+                frames_pred = pred_y[b]
+                frames_true = batch_y[b]
+                save_images(frames_pred, save_path, name='pred')
+                save_images(frames_true, save_path, name='true')
+
+        return loss
 
 
 

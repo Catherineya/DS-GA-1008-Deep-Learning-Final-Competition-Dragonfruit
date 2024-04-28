@@ -15,3 +15,10 @@ def save_masks(masks, save_path, name='pmask'):
     for i in range(masks.shape[0]):
         mask = to_pil_image(masks[i].byte().data)
         plt.imsave(os.path.join(save_path, f'{i}_{name}.png'), mask)
+
+
+def save_images(frames, save_path, name='pred'):
+    os.makedirs(save_path, exist_ok=True)
+    for i in range(frames.shape[0]):
+        frame = to_pil_image(frames[i])
+        plt.imsave(os.path.join(save_path, f'{i}_{name}.png'), np.array(frame))

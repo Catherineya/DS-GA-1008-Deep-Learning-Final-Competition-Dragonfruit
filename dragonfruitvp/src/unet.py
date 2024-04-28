@@ -67,11 +67,11 @@ from dragonfruitvp.data.custom_dataset import CompetitionDataset
 #         mask = self.transform_mask(mask_array)
 #         return image, mask
 
-train_data = CompetitionDataset('/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset/train', normalize=False)
-val_data = CompetitionDataset('/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset/val', normalize=False)
+# train_data = CompetitionDataset('/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset/train', normalize=False)
+# val_data = CompetitionDataset('/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset/val', normalize=False)
 
-train_loader = DataLoader(train_data, batch_size = 8, shuffle = True)
-val_loader = DataLoader(val_data, batch_size = 8, shuffle = True)
+# train_loader = DataLoader(train_data, batch_size = 8, shuffle = True)
+# val_loader = DataLoader(val_data, batch_size = 8, shuffle = True)
 
 
 

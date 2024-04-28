@@ -7,7 +7,7 @@ from dragonfruitvp.src.simvp import SimVP_Model, SimVP
 from dragonfruitvp.src.unet import UNet
 from dragonfruitvp.utils.main import load_model_weights
 from dragonfruitvp.utils.metrics import metric
-from dragonfruitvp.utils.vis import save_masks
+from dragonfruitvp.utils.vis import save_masks, save_images
 
 class SimUNet(Base_method):
     def __init__(self, alpha=2.0, beta=1.0, gamma=1.0, **kwargs):
@@ -28,17 +28,17 @@ class SimUNet(Base_method):
         assert pre_seq_length == aft_seq_length
         # print('batch_x shape: ', batch_x.shape, 'batch_x_aft shape: ', batch_x_aft.shape)
         if batch_x_aft is not None:
-            pmask, tmask_pre, tmask_aft = self.model(batch_x, batch_x_aft)
-            return pmask, tmask_pre, tmask_aft
+            x_pred, pmask, tmask_pre, tmask_aft = self.model(batch_x, batch_x_aft)
+            return x_pred, pmask, tmask_pre, tmask_aft
         else:
-            pmask = self.model(batch_x)
-            return pmask
+            x_pred, pmask = self.model(batch_x)
+            return x_pred, pmask
     
     def training_step(self, batch, batch_idx):
         assert len(batch) == 3
         batch_x, batch_aft, batch_y = batch
 
-        pmask, tmask_pre, tmask_aft = self(batch_x, batch_aft, batch_y)
+        x_pred, pmask, tmask_pre, tmask_aft = self(batch_x, batch_aft, batch_y)
 
         B, T, H, W = batch_y.shape
         t = T // 2
@@ -63,7 +63,7 @@ class SimUNet(Base_method):
         '''
         assert len(batch) == 3
         batch_x, batch_aft, batch_y = batch
-        pmask, tmask_pre, tmask_aft = self(batch_x, batch_aft, batch_y)
+        x_pred, pmask, tmask_pre, tmask_aft = self(batch_x, batch_aft, batch_y)
         # print('prediction shape', pmask.shape, 'truth shape', tmask_pre.shape, tmask_aft.shape, 'mask shape', batch_y.shape)
         B, T, H, W = batch_y.shape
         t = T // 2
@@ -90,23 +90,21 @@ class SimUNet(Base_method):
         for key, value in eval_res.items():
             self.log(key, value, on_step=True, on_epoch=True, prog_bar=False)
 
-        
-        save_path = f'masks_vis/batch_{batch_idx}'
-        _, pmask_vis = torch.max(pmask, 1)
-        _, tmask_pre_vis = torch.max(tmask_pre, 1)
-        _, tmask_aft_vis = torch.max(tmask_aft, 1)
-        save_masks(pmask_vis, save_path, 'aft_pmask')
-        save_masks(tmask_pre_vis, save_path, 'pre_tmask')
-        save_masks(tmask_aft_vis, save_path, 'aft_tmask')
-        save_masks(batch_ty_pre, save_path, 'pre_label')
-        save_masks(batch_ty_aft, save_path, 'aft_label')
+        if self.vis_val:
+            # save all images
+            save_path = f'vis_finetune/batch_{batch_idx}'
+            _, pmask_vis = torch.max(pmask, 1)
+            _, tmask_pre_vis = torch.max(tmask_pre, 1)
+            _, tmask_aft_vis = torch.max(tmask_aft, 1)
+            save_masks(pmask_vis, save_path, 'aft_pmask')
+            save_masks(tmask_pre_vis, save_path, 'pre_tmask')
+            save_masks(tmask_aft_vis, save_path, 'aft_tmask')
+            save_masks(batch_ty_pre, save_path, 'pre_label')
+            save_masks(batch_ty_aft, save_path, 'aft_label')
 
-        # print('\n iou:', eval_res['iou'], '\n')
+            save_images(x_pred, save_path, 'pred')
+            save_images(batch_aft.reshape(*x_pred.shape), save_path, 'true')
 
-        # log_note = [f'{key}: {value}' for key, value in eval_res.items()]
-        # log_note = ', '.join(log_note)
-
-        # self.log(f'{log_note}, val_loss', loss, on_step=True, on_epoch=True, prog_bar=False) # refer to the lightning built in logger
         return loss
 
 
@@ -149,8 +147,8 @@ class SimUNet_Model(nn.Module):
             x_aft = x_aft.reshape(B*T, C, H, W)
             tmask_pre = self.unet(x_raw.reshape(B*T, C, H, W)) # predict masks for first 11 frames
             tmask_aft = self.unet(x_aft) # predict masks for last 11 frames
-            return pmask, tmask_pre, tmask_aft
+            return x_pred, pmask, tmask_pre, tmask_aft
         else:
-            return pmask
+            return x_pred, pmask
 
         

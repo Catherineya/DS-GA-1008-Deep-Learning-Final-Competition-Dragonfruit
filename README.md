@@ -51,3 +51,4 @@ scp <NetID>@greene-dtn.hpc.nyu.edu:/path/to/files /home/<NetID>/
 For sending the whole folder:
 ```
 scp -r <NetID>@greene-dtn.hpc.nyu.edu:/path/to/folder /home/<NetID>/
+```
