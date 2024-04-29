@@ -90,48 +90,35 @@ class SimMP2(SimMP):
         true_y = batch_y[:, T:, :, :]
         pred_y = self(batch_x)
         _, _, M, _, _ = pred_y.shape
-        loss = self.criterion(pred_y.reshape(B*T, M, H, W), true_y.reshape(B*T, H, W))
-        # batch_x, _, batch_y = batch
-        # pred_y = self(batch_x, batch_y)
-        # B, T, M, H, W = pred_y.shape
-        # true_y = batch_y[:, T:, :, :]
-        
-        # loss = self.criterion(pred_y.reshape(B*T, M, H, W), true_y.reshape(B*T, H, W))
-   
-        eval_res, eval_log = metric(
-            pred = pred_y.reshape(B*T, M, H, W).cpu().numpy(), 
-            true = true_y.reshape(B*T, H, W).cpu().numpy(), 
-            mean = self.hparams.test_mean,
-            std = self.hparams.test_std,
-            metrics = self.metric_list,
-            channel_names = self.channel_names,
-            spatial_norm = self.spatial_norm,
-            threshold = self.hparams.get('metric_threshold', None)
-        )
+       
+        pred_y_last = pred_y[:,-1,:,:,:].squeeze(1)
+        batch_y_last = true_y[:,-1,:,:].squeeze(1)
 
+        pred_y_cat = pred_y.reshape(B*T, M, H, W)
+        true_y_cat = true_y.reshape(B*T, H, W)
+        
+        loss = self.criterion(pred_y_cat, true_y_cat)
+
+        eval_res = {}
         eval_res['val_loss'] = loss
         for key, value in eval_res.items():
             self.log(key, value, on_step=True, on_epoch=True, prog_bar=False)
         
-        self.val_iou.append(eval_res['iou'])
+        _, pred_y_mask = torch.max(pred_y_cat, 1)
+        _, pred_y_last_mask = torch.max(pred_y_last, 1)
+        
+        # move tensors to cpu
+        pred_y_mask = pred_y_mask.cpu()
+        true_y_cat = true_y_cat.cpu()
+        pred_y_last_mask = pred_y_last_mask.cpu()
+        batch_y_last = batch_y_last.cpu()
 
-        # evaluate the last frame only
-        pred_y_last = pred_y[:,-1,:,:,:].squeeze(1)
-        batch_y_last = batch_y[:,-1,:,:].squeeze(1)
-        eval_last_res, eval_last_log = metric(
-            pred = pred_y_last.cpu().numpy(), 
-            true = batch_y_last.cpu().numpy(), 
-            mean = self.hparams.test_mean,
-            std = self.hparams.test_std,
-            metrics = self.metric_list,
-            channel_names = self.channel_names,
-            spatial_norm = self.spatial_norm,
-            threshold = self.hparams.get('metric_threshold', None)
-        )
-        for key, value in eval_last_res.items():
-            self.log(f'last frame {key}', value, on_step=True, on_epoch=True, prog_bar=False)
+        self.val_pred = torch.cat((self.val_pred, pred_y_mask), dim=0) if self.val_pred is not None else pred_y_mask
+        self.val_true = torch.cat((self.val_true, true_y_cat), dim=0) if self.val_true is not None else true_y_cat
+    
+        self.val_last_pred = torch.cat((self.val_last_pred, pred_y_last_mask), dim=0) if self.val_last_pred is not None else pred_y_last_mask
+        self.val_last_true = torch.cat((self.val_last_true, batch_y_last), dim=0) if self.val_last_true is not None else batch_y_last
 
-        self.val_last_iou.append(eval_last_res['iou'])
 
         if self.vis_val:
             for b in range(pred_y.shape[0]):
@@ -168,13 +155,12 @@ class SimMP2(SimMP):
             last_pred_y = pred_y[:,-1,:,:,:].squeeze(1)
             last_true_y = true_y[:,-1,:,:].squeeze(1)
 
-            jaccard = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
-
             _, pred_tensor = torch.max(last_pred_y, 1)
-            iou = jaccard(pred_tensor.cpu(), last_true_y.cpu()).item()
-            # print('iou test:', iou)
-
-            self.test_iou.append(iou)
+            
+            pred_tensor = pred_tensor.cpu()
+            last_true_y = last_true_y.cpu()
+            self.test_pred = torch.cat((self.test_pred, pred_tensor), dim=0) if self.test_pred is not None else pred_tensor
+            self.test_true = torch.cat((self.test_true, last_true_y), dim=0) if self.test_true is not None else last_true_y
         
             save_path = 'vis_test_mask'
             save_masks(pred_tensor, save_path, name='pred')

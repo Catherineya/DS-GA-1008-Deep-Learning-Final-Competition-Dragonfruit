@@ -23,3 +23,6 @@ ${sif_path} /bin/bash -c "
         --model_config_file 'dragonfruitvp/custom_configs/model_configs/gsta_mp.yaml'\
         --training_config_file 'dragonfruitvp/custom_configs/training_configs/mptrain_e10lr3_onecycle_hpc.yaml'
 "
+
+
+

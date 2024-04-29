@@ -135,14 +135,20 @@ def get_optim_scheduler(args, epoch, model, steps_per_epoch):
             final_div_factor=getattr(args, 'final_div_factor', 1e4))
         by_epoch = False
     elif sched_lower == 'cosine':
-        lr_scheduler = CosineLRScheduler(
+        # lr_scheduler = CosineLRScheduler(
+        #     optimizer,
+        #     t_initial=epoch,
+        #     lr_min=args.min_lr,
+        #     warmup_lr_init=args.warmup_lr,
+        #     warmup_t=args.warmup_epoch,
+        #     t_in_epochs=True,  # update lr by_epoch
+        #     k_decay=getattr(args, 'lr_k_decay', 1.0))
+        lr_scheduler = optim.CosineAnnealingWarmRestarts(
             optimizer,
-            t_initial=epoch,
-            lr_min=args.min_lr,
-            warmup_lr_init=args.warmup_lr,
-            warmup_t=args.warmup_epoch,
-            t_in_epochs=True,  # update lr by_epoch
-            k_decay=getattr(args, 'lr_k_decay', 1.0))
+            t_0 = epoch,
+            eta_min = args.min_lr,
+        )
+
     elif sched_lower == 'tanh':
         lr_scheduler = TanhLRScheduler(
             optimizer,

@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     else:
         # start pretraining, use unlabeled as training data, val as validation, train as test
-        mp = DragonFruitMPTrain(args, dataloaders=(dataloader_augmented, dataloader_val, dataloader_train), strategy='auto')
+        mp = DragonFruitMPTrain(args, dataloaders=(dataloader_augmented, dataloader_val, dataloader_val), strategy='auto')
 
         print('>'*35 + ' training ' + '<'*35)
         mp.train()
