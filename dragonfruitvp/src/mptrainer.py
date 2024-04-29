@@ -11,7 +11,8 @@ from fvcore.nn import FlopCountAnalysis, flop_count_table
 from pytorch_lightning import seed_everything, Trainer
 
 from dragonfruitvp.data.base_module import BaseDataModule
-from dragonfruitvp.src.simmp import SimMP
+from dragonfruitvp.src.simmp import SimMP 
+from dragonfruitvp.src.simmp2 import SimMP2
 from dragonfruitvp.utils.callbacks import (SetupCallback, EpochEndCallback, BestCheckpointCallback)
 
 
@@ -22,7 +23,7 @@ class DragonFruitMPTrain:
         self.args = args
         self.config = self.args.__dict__
 
-        self.method = 'simvp'  # TODO
+        self.method = 'simmp'  # TODO
         self.args.method = self.args.method.lower() # TODO
         self._dist = self.args.dist
 
@@ -32,13 +33,23 @@ class DragonFruitMPTrain:
 
         seed_everything(self.args.seed)
         self.data = BaseDataModule(*dataloaders) #TODO: implement BaseDataModule later
-        self.method = SimMP(
-            steps_per_epoch=len(self.data.train_loader),
-            test_mean = self.data.test_mean,
-            test_std = self.data.test_std,
-            save_dir = save_dir, 
-            **self.config,
-        )
+
+        if self.args.method == 'simmp':
+            self.method = SimMP(
+                steps_per_epoch=len(self.data.train_loader),
+                test_mean = self.data.test_mean,
+                test_std = self.data.test_std,
+                save_dir = save_dir, 
+                **self.config,
+            )
+        elif self.args.method == 'simmp2':
+            self.method = SimMP2(
+                steps_per_epoch=len(self.data.train_loader),
+                test_mean = self.data.test_mean,
+                test_std = self.data.test_std,
+                save_dir = save_dir, 
+                **self.config,
+            )
 
         callbacks, self.save_dir = self._load_callbacks(args, save_dir, ckpt_dir)
         self.trainer = self._init_trainer(self.args, callbacks, strategy)
@@ -89,6 +100,7 @@ class DragonFruitMPTrain:
     
     def test(self):
         if self.args.test == True:
+            print('weight loaded')
             ckpt = torch.load(osp.join(self.save_dir, 'checkpoints', 'best.ckpt'))
             self.method.load_state_dict(ckpt['state_dict'])
         self.trainer.test(self.method, self.data)

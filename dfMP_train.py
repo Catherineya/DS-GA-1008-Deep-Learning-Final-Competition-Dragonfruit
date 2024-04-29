@@ -9,7 +9,7 @@ import yaml
 
 from PIL import Image
 from pathlib import Path
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, ConcatDataset, DataLoader, random_split
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -53,10 +53,12 @@ if __name__ == "__main__":
     train_set = CompetitionDataset(os.path.join(base_datadir, 'train'), dataset_type='labeled', limit=limit) # we treat trainset as unlabeled here
     val_set = CompetitionDataset(os.path.join(base_datadir, 'val'), dataset_type='labeled', limit=limit)
     unlabeled_set = CompetitionDataset(os.path.join(base_datadir, 'unlabeled'), dataset_type='labeled', limit=limit)
+    # concat train and unet labeled unlabeled set together
+    augmented_set = ConcatDataset([train_set, unlabeled_set])
 
     num_workers = config['num_workers']
     dataloader_train = torch.utils.data.DataLoader(
-        train_set, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=num_workers
+        train_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=num_workers
     )
     dataloader_val = torch.utils.data.DataLoader(
         val_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=num_workers
@@ -65,11 +67,25 @@ if __name__ == "__main__":
         unlabeled_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=num_workers
     )
 
-    # start pretraining, use unlabeled as training data, val as validation, train as test
-    mp = DragonFruitMPTrain(args, dataloaders=(dataloader_unlabeled, dataloader_val, dataloader_train), strategy='auto')
+    dataloader_augmented = torch.utils.data.DataLoader(
+        augmented_set, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=num_workers
+    )
 
-    print('>'*35 + ' training ' + '<'*35)
-    mp.train()
+    if config['test']:
+        print('using hidden set')
+        hidden_set = CompetitionDataset(os.path.join(base_datadir, 'hidden'), dataset_type='hidden')
+        dataloader_hidden = torch.utils.data.DataLoader(
+            hidden_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=num_workers
+        )
+
+        mp = DragonFruitMPTrain(args, dataloaders=(dataloader_augmented, dataloader_val, dataloader_hidden), strategy='auto')
+
+    else:
+        # start pretraining, use unlabeled as training data, val as validation, train as test
+        mp = DragonFruitMPTrain(args, dataloaders=(dataloader_augmented, dataloader_val, dataloader_train), strategy='auto')
+
+        print('>'*35 + ' training ' + '<'*35)
+        mp.train()
 
     print('>'*35 + ' testing  ' + '<'*35)
     mp.test()

@@ -6,6 +6,7 @@ import torchmetrics
 from torch import nn
 
 from dragonfruitvp.src.base_method import Base_method
+from dragonfruitvp.src.simmp import SimMP, SimMP_Model
 from dragonfruitvp.modules import (ConvSC, ConvNeXtSubBlock, ConvMixerSubBlock, GASubBlock, gInception_ST,
                                    HorNetSubBlock, MLPMixerSubBlock, MogaSubBlock, PoolFormerSubBlock,
                                    SwinSubBlock, UniformerSubBlock, VANSubBlock, ViTSubBlock, TAUSubBlock)
@@ -13,60 +14,63 @@ from dragonfruitvp.modules import (ConvSC, ConvNeXtSubBlock, ConvMixerSubBlock, 
 from dragonfruitvp.utils.metrics import metric
 from dragonfruitvp.utils.vis import save_images, save_masks
 
-class SimMP(Base_method):
+class SimMP2(SimMP):
+    '''
+    mask input version of SimMP
+    '''
     def __init__(self, eps=0, **kwargs):
         '''
         eps: controls how much extra weight is put on the last frame prediction, default to be 0
         ''' 
         super().__init__(**kwargs)
-        self.eps = eps
-        self.criterion = nn.CrossEntropyLoss()
+    #     self.eps = eps
+    #     self.criterion = nn.CrossEntropyLoss()
 
-        # for calculating average iou
-        self.val_iou = []
-        self.val_last_iou = []
-        self.test_iou = []
+    #     # for calculating average iou
+    #     self.val_iou = []
+    #     self.val_last_iou = []
+    #     self.test_iou = []
         
-        # for competition submission
-        self.submission = None
+    #     # for competition submission
+    #     self.submission = None
 
-    def _build_model(self, **kwargs):
-        return SimMP_Model(**kwargs)
+    # def _build_model(self, **kwargs):
+    #     return SimMP_Model(**kwargs)
     
-    def forward(self, batch_x, batch_y=None, **kwargs):
-        pre_seq_length, aft_seq_length = self.hparams.pre_seq_length, self.hparams.aft_seq_length
-        if aft_seq_length == pre_seq_length:
-            pred_y = self.model(batch_x)
-        elif aft_seq_length < pre_seq_length:
-            pred_y = self.model(batch_x)
-            pred_y = pred_y[:, :aft_seq_length]
-        elif aft_seq_length > pre_seq_length:
-            pred_y = []
-            d = aft_seq_length // pre_seq_length
-            m = aft_seq_length % pre_seq_length
+    # def forward(self, batch_x, batch_y=None, **kwargs):
+    #     pre_seq_length, aft_seq_length = self.hparams.pre_seq_length, self.hparams.aft_seq_length
+    #     if aft_seq_length == pre_seq_length:
+    #         pred_y = self.model(batch_x)
+    #     elif aft_seq_length < pre_seq_length:
+    #         pred_y = self.model(batch_x)
+    #         pred_y = pred_y[:, :aft_seq_length]
+    #     elif aft_seq_length > pre_seq_length:
+    #         pred_y = []
+    #         d = aft_seq_length // pre_seq_length
+    #         m = aft_seq_length % pre_seq_length
             
-            cur_seq = batch_x.clone()
-            for _ in range(d):
-                cur_seq = self.model(cur_seq)
-                pred_y.append(cur_seq)
+    #         cur_seq = batch_x.clone()
+    #         for _ in range(d):
+    #             cur_seq = self.model(cur_seq)
+    #             pred_y.append(cur_seq)
             
-            if m != 0:
-                cur_seq = self.model(cur_seq)
-                pred_y.append(cur_seq[:, :m])
+    #         if m != 0:
+    #             cur_seq = self.model(cur_seq)
+    #             pred_y.append(cur_seq[:, :m])
             
-            pred_y = torch.cat(pred_y, dim=1)
-        return pred_y
+    #         pred_y = torch.cat(pred_y, dim=1)
+    #     return pred_y
     
     def training_step(self, batch, batch_idx):
         assert len(batch) == 3
-        batch_x, _, batch_y = batch
-        pred_y = self(batch_x)
-        B, T, M, H, W = pred_y.shape
+        _, _, batch_y = batch
+        B, T2, H, W = batch_y.shape
+        T = T2 // 2
+        batch_x = batch_y[:, :T, :, :].unsqueeze(2)
+        batch_x = batch_x.contiguous().float()
         true_y = batch_y[:, T:, :, :]
-        # print('pred y', pred_y.shape, 'true y', true_y.shape)
-        # last_pred_y = pred_y[:, -1, :, :, :].squeeze(1)
-        # last_true_y = pred_y[:, -1, :, :].squeeze(1)
-        # loss = self.eps*self.criterion(last_pred_y, last_true_y) + self.criterion(pred_y.reshape(B*T, M, H, W), true_y.reshape(B*T, H, W))
+        pred_y = self(batch_x)
+        _, _, M, _, _ = pred_y.shape
         loss = self.criterion(pred_y.reshape(B*T, M, H, W), true_y.reshape(B*T, H, W))
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
@@ -78,12 +82,21 @@ class SimMP(Base_method):
         hidden dataset will never be used for validation
         '''
         assert len(batch) == 3
-        batch_x, _, batch_y = batch
-        pred_y = self(batch_x, batch_y)
-        B, T, M, H, W = pred_y.shape
+        _, _, batch_y = batch
+        B, T2, H, W = batch_y.shape
+        T = T2 // 2
+        batch_x = batch_y[:, :T, :, :].unsqueeze(2)
+        batch_x = batch_x.contiguous().float()
         true_y = batch_y[:, T:, :, :]
-        
+        pred_y = self(batch_x)
+        _, _, M, _, _ = pred_y.shape
         loss = self.criterion(pred_y.reshape(B*T, M, H, W), true_y.reshape(B*T, H, W))
+        # batch_x, _, batch_y = batch
+        # pred_y = self(batch_x, batch_y)
+        # B, T, M, H, W = pred_y.shape
+        # true_y = batch_y[:, T:, :, :]
+        
+        # loss = self.criterion(pred_y.reshape(B*T, M, H, W), true_y.reshape(B*T, H, W))
    
         eval_res, eval_log = metric(
             pred = pred_y.reshape(B*T, M, H, W).cpu().numpy(), 
@@ -131,19 +144,26 @@ class SimMP(Base_method):
 
         return loss
 
-    def on_validation_epoch_end(self):
-        mean_val_iou = sum(self.val_iou) / len(self.val_iou)
-        mean_last_iou = sum(self.val_last_iou) / len(self.val_last_iou)
-        print('validation iou:', mean_val_iou, 'last frame iou:', mean_last_iou)
+    # def on_validation_epoch_end(self):
+    #     mean_val_iou = sum(self.val_iou) / len(self.val_iou)
+    #     mean_last_iou = sum(self.val_last_iou) / len(self.val_last_iou)
+    #     print('validation iou:', mean_val_iou, 'last frame iou:', mean_last_iou)
 
     
     def test_step(self, batch, batch_idx):
         if len(batch) == 3:
             # TODO: only for testing iou, change back later
-            batch_x, _, batch_y = batch
-            pred_y = self(batch_x, batch_y)
-            B, T, M, H, W = pred_y.shape
+            # batch_x, _, batch_y = batch
+            # pred_y = self(batch_x, batch_y)
+            # B, T, M, H, W = pred_y.shape
+            # true_y = batch_y[:, T:, :, :]
+            _, _, batch_y = batch
+            B, T2, H, W = batch_y.shape
+            T = T2 // 2
+            batch_x = batch_y[:, :T, :, :].unsqueeze(2)
+            batch_x = batch_x.contiguous().float()
             true_y = batch_y[:, T:, :, :]
+            pred_y = self(batch_x)
 
             last_pred_y = pred_y[:,-1,:,:,:].squeeze(1)
             last_true_y = true_y[:,-1,:,:].squeeze(1)
@@ -168,20 +188,20 @@ class SimMP(Base_method):
             self.submission = torch.cat((self.submission, mask_pred), dim=0) if self.submission is not None else mask_pred
 
 
-    def on_test_epoch_end(self):
-        if len(self.test_iou) > 0:
-            mean_iou = sum(self.test_iou)/len(self.test_iou)
-            print('iou during test', mean_iou)
+    # def on_test_epoch_end(self):
+    #     if len(self.test_iou) > 0:
+    #         mean_iou = sum(self.test_iou)/len(self.test_iou)
+    #         print('iou during test', mean_iou)
 
-        if self.submission is not None:
-            print('submission shape', self.submission.shape)
-            save_path = 'team_12.pt'
-            torch.save(self.submission, save_path)
-            print('submission saved to team_12.pt')
+    #     if self.submission is not None:
+    #         print('submission shape', self.submission.shape)
+    #         save_path = 'team_12.pt'
+    #         torch.save(self.submission, save_path)
+    #         print('submission saved to team_12.pt')
 
 
 
-class SimMP_Model(nn.Module):
+class SimMP2_Model(nn.Module):
     def __init__(self, in_shape, hid_S=16, hid_T=256, N_S=4, N_T=4, model_type='gSTA',
                  mlp_ratio=8., drop=0.0, drop_path=0.0, spatio_kernel_enc=3, 
                  spatio_kernel_dec=3, act_inplace=True, **kwargs):
@@ -207,7 +227,6 @@ class SimMP_Model(nn.Module):
 
         
     def forward(self, x_raw, **kwargs):
-        # print('x_raw shape', x_raw.shape)
         B, T, C, H, W = x_raw.shape
         x = x_raw.view(B*T, C, H, W)
 

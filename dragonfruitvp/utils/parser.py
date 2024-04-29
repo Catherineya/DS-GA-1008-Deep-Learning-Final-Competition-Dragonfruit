@@ -131,7 +131,7 @@ def default_parser():
         'torchscript': False,
         'seed': 42,
         'fps': False,
-        'test': False,
+        'test': True,
         'deterministic': False,
         # dataset parameters
         'batch_size': 16,

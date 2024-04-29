@@ -8,3 +8,4 @@ vis*/
 .ipynb_checkpoints
 *.tar
 *.gz
+*.pt

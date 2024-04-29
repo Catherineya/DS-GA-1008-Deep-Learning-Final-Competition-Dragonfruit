@@ -117,7 +117,6 @@ class Base_method(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
         batch_x, batch_y = batch
-        batch_x, batch_y = batch
         pred_y = self(batch_x, batch_y)
         outputs = {'inputs': batch_x.cpu().numpy(), 'preds': pred_y.cpu().numpy(), 'trues': batch_y.cpu().numpy()}
         self.test_outputs.append(outputs)
