@@ -20,4 +20,5 @@ gpus:
   - 2
   - 3
 num_workers: 11
+# num_workers: 1
 test: False

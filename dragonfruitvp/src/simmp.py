@@ -27,11 +27,14 @@ class SimMP(Base_method):
         self.val_last_iou = []
         self.test_iou = []
 
-        self.val_pred = None
-        self.val_true = None
+        # self.val_pred = None
+        # self.val_true = None
 
         self.val_last_pred = None
         self.val_last_true = None
+
+        self.val_first_pred = None
+        self.val_first_true = None
 
         self.test_pred = None
         self.test_true = None
@@ -104,25 +107,33 @@ class SimMP(Base_method):
         
         _, pred_y_mask = torch.max(pred_y_cat, 1)
         _, pred_y_last_mask = torch.max(pred_y_last, 1)
+        _, pred_y_first_mask = torch.max(pred_y_first, 1)
 
         # move tensors to cpu
         pred_y_mask = pred_y_mask.cpu()
         true_y_cat = true_y_cat.cpu()
         pred_y_last_mask = pred_y_last_mask.cpu()
         batch_y_last = batch_y_last.cpu()
+        pred_y_first_mask = pred_y_first_mask.cpu()
+        batch_y_first = batch_y_first.cpu()
 
-        self.val_pred = torch.cat((self.val_pred, pred_y_mask), dim=0) if self.val_pred is not None else pred_y_mask
-        self.val_true = torch.cat((self.val_true, true_y_cat), dim=0) if self.val_true is not None else true_y_cat
+        # self.val_pred = torch.cat((self.val_pred, pred_y_mask), dim=0) if self.val_pred is not None else pred_y_mask
+        # self.val_true = torch.cat((self.val_true, true_y_cat), dim=0) if self.val_true is not None else true_y_cat
     
         self.val_last_pred = torch.cat((self.val_last_pred, pred_y_last_mask), dim=0) if self.val_last_pred is not None else pred_y_last_mask
         self.val_last_true = torch.cat((self.val_last_pred, batch_y_last), dim=0) if self.val_last_true is not None else batch_y_last
 
+        self.val_first_pred = torch.cat((self.val_first_pred, pred_y_first_mask), dim=0) if self.val_first_pred is not None else pred_y_first_mask
+        self.val_first_true = torch.cat((self.val_first_true, batch_y_first), dim=0) if self.val_first_true is not None else batch_y_first
+
         if self.vis_val:
-            for b in range(pred_y.shape[0]):
+            for b in range(pred_y_mask.shape[0]):
                 save_path = os.path.join('vis_mptrain', f'{batch_idx}_{b}')
-                masks_pred = pred_y[b]
-                _, masks_pred = torch.max(masks_pred, 1)
-                masks_true = true_y[b]
+                # masks_pred = pred_y[b]
+                # _, masks_pred = torch.max(masks_pred, 1)
+                # masks_true = true_y[b]ji
+                masks_pred = pred_y_mask[b]
+                masks_true = true_y_cat[b]
                 save_masks(masks_pred, save_path, name='pred')
                 save_masks(masks_true, save_path, name='true')
 
@@ -134,12 +145,18 @@ class SimMP(Base_method):
         # print('shape check', self.val_pred.shape, self.val_true.shape, self.val_last_pred.shape, self.val_last_true.shape)
 
         jaccard = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
-        full_iou = jaccard(self.val_pred, self.val_true).item()
+        # full_iou = jaccard(self.val_pred, self.val_true).item()
         last_iou = jaccard(self.val_last_pred, self.val_last_true).item()
-        print('validation iou:', full_iou, 'last frame iou:', last_iou)
+        first_iou = jaccard(self.val_first_pred, self.val_first_true).item()
+        print('validation last iou:', last_iou, 'validation first iou:', first_iou)
         
-        self.log('validation iou', full_iou, on_step=False, on_epoch=True, prog_bar=False)
-        self.log('last frame iou', last_iou, on_step=False, on_epoch=True, prog_bar=False)
+        self.val_last_pred = None
+        self.val_last_true = None
+
+        self.val_first_pred = None
+        self.val_first_true = None
+        # self.log('validation iou', full_iou, on_step=False, on_epoch=True, prog_bar=False)
+        # self.log('last frame iou', last_iou, on_step=False, on_epoch=True, prog_bar=False)
 
 
     def test_step(self, batch, batch_idx):

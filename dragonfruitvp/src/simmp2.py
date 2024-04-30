@@ -94,6 +94,9 @@ class SimMP2(SimMP):
         pred_y_last = pred_y[:,-1,:,:,:].squeeze(1)
         batch_y_last = true_y[:,-1,:,:].squeeze(1)
 
+        pred_y_first = pred_y[:,0,:,:,:].squeeze(1)
+        batch_y_first = true_y[:,0,:,:].squeeze(1)
+
         pred_y_cat = pred_y.reshape(B*T, M, H, W)
         true_y_cat = true_y.reshape(B*T, H, W)
         
@@ -106,19 +109,27 @@ class SimMP2(SimMP):
         
         _, pred_y_mask = torch.max(pred_y_cat, 1)
         _, pred_y_last_mask = torch.max(pred_y_last, 1)
+        _, pred_y_first_mask = torch.max(pred_y_first, 1)
         
         # move tensors to cpu
         pred_y_mask = pred_y_mask.cpu()
         true_y_cat = true_y_cat.cpu()
         pred_y_last_mask = pred_y_last_mask.cpu()
         batch_y_last = batch_y_last.cpu()
+        pred_y_first_mask = pred_y_first_mask.cpu()
+        batch_y_first = batch_y_first.cpu()
 
-        self.val_pred = torch.cat((self.val_pred, pred_y_mask), dim=0) if self.val_pred is not None else pred_y_mask
-        self.val_true = torch.cat((self.val_true, true_y_cat), dim=0) if self.val_true is not None else true_y_cat
+        # self.val_pred = torch.cat((self.val_pred, pred_y_mask), dim=0) if self.val_pred is not None else pred_y_mask
+        # self.val_true = torch.cat((self.val_true, true_y_cat), dim=0) if self.val_true is not None else true_y_cat
     
+        # if self.val_last_pred is None:
+        #     print('the validation tensor is initialized in {batch_idx}')
+
         self.val_last_pred = torch.cat((self.val_last_pred, pred_y_last_mask), dim=0) if self.val_last_pred is not None else pred_y_last_mask
         self.val_last_true = torch.cat((self.val_last_true, batch_y_last), dim=0) if self.val_last_true is not None else batch_y_last
 
+        self.val_first_pred = torch.cat((self.val_first_pred, pred_y_first_mask), dim=0) if self.val_first_pred is not None else pred_y_first_mask
+        self.val_first_true = torch.cat((self.val_first_true, batch_y_first), dim=0) if self.val_first_true is not None else batch_y_first
 
         if self.vis_val:
             for b in range(pred_y.shape[0]):

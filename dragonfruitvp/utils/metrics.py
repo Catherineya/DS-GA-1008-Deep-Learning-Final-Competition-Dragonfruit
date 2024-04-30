@@ -245,7 +245,7 @@ def metric(pred, true, mean=None, std=None, metrics=['mae', 'mse'],
         for b in range(pred.shape[0]):
             for f in range(pred.shape[1]):
                 # ssim += cal_ssim(pred[b, f].swapaxes(0, 2),
-                                #  true[b, f].swapaxes(0, 2), multichannel=True, win_size = 7)
+                                #  true[b, f].swaxjpaxes(0, 2), multichannel=True, win_size = 7)
                 ssim += cal_ssim(pred[b, f], true[b, f], multichannel=True, channel_axis=0, data_range=1)
         eval_res['ssim'] = ssim / (pred.shape[0] * pred.shape[1])
 
