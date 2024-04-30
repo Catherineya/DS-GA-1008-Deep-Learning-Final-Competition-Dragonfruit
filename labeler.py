@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_path', default='dataset/unlabeled', type=str, help='path of the dataset to be labeled')
-    parser.add_argument('--unet_weight', default='best_model.pth', type=str, help='path of the trained unet weight')
+    parser.add_argument('--unet_weight', default='weights_hub/unet/best_model.pth', type=str, help='path of the trained unet weight')
     args = parser.parse_args()
     
     model = UNet() 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             
             if len(preds_list) > 0:
                 stacked_preds_numpy = np.stack(preds_list)
-                assert stacked_preds_numpy.shape[0] == 22, f"Expected 22 predictions, got {stacked_preds_numpy.shape[0]}"
+                assert stacked_preds_numpy.shape[0] in [11, 22], f"Expected 11 or 22 predictions, got {stacked_preds_numpy.shape[0]}"
                 save_path = os.path.join(folder, 'mask.npy')
 
             # print(stacked_preds_numpy.shape)

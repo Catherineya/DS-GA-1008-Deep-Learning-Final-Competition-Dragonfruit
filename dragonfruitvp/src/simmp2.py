@@ -177,13 +177,31 @@ class SimMP2(SimMP):
             save_masks(pred_tensor, save_path, name='pred')
             save_masks(last_true_y, save_path, name='true')
 
-        elif len(batch) == 1:
-            pred_y = self(batch)
+        elif len(batch) == 2:
+            batch_img, batch_x = batch
+            batch_x = batch_x.unsqueeze(2)
+            batch_x = batch_x.contiguous().float()
+            pred_y = self(batch_x)
             last_pred_y = pred_y[:,-1,:,:,:].squeeze(1)
             _, mask_pred = torch.max(last_pred_y, 1)
             mask_pred = mask_pred.to('cpu')
             self.submission = torch.cat((self.submission, mask_pred), dim=0) if self.submission is not None else mask_pred
 
+            # visualize masks and images for varification
+            save_path = f'vis_submission/{batch_idx}'
+
+            # print('shape check', mask_pred.shape, batch[0].shape, batch[1].shape)
+            
+            save_masks(mask_pred, save_path, name='pred')
+
+            for j in range(batch_img.shape[0]):
+                sub_save_path = os.path.join(save_path, str(j))
+                save_masks(batch[1][j], sub_save_path, name='pre_mask')
+                save_images(batch_img[j], sub_save_path, name='pre_image')
+
+        elif len(batch) == 1:
+            # todo: use unet to label the data first
+            raise NotImplementedError
 
     # def on_test_epoch_end(self):
     #     if len(self.test_iou) > 0:

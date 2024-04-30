@@ -12,13 +12,14 @@ dataname: 'custom'
 in_shape: [11, 1, 160, 240]
 eps: 1
 res_dir: 'weights_hub'
-data_root: '../dataset'
+# data_root: '../dataset'
+data_root: './dataset'
 vis_val: True
 gpus:
   - 0
-  - 1
-  - 2
-  - 3
-num_workers: 11
-# num_workers: 1
-test: False
+#   - 1
+#   - 2
+#   - 3
+# num_workers: 11
+num_workers: 1
+test: True

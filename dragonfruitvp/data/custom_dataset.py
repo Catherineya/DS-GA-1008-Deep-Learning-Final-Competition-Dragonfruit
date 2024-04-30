@@ -45,8 +45,21 @@ class CompetitionDataset(Dataset):
         video_frames = [self.transform_image(Image.open(f).convert('RGB')) for f in files ]
         pre_seqs = torch.stack(video_frames[:11]).float()
 
+        # check if the data are loaded corretly
+        # for f in files:
+        #     print(f)
+
         if self.dataset_type == 'hidden':
             return pre_seqs
+        
+        elif self.dataset_type == 'pseudohidden':
+            '''
+            specially made for simmp2
+            input data are converted to mask in advance using trained unet weight, for sake of inference speed
+            '''
+            masks_dir = self.video_folders[index].joinpath("mask.npy")
+            masks = self.transform_mask(np.load(masks_dir))
+            return pre_seqs, masks
         
         else:
             aft_seqs = torch.stack(video_frames[11:]).float()
