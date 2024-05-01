@@ -147,8 +147,8 @@ class SimMP2(SimMP):
     #     mean_last_iou = sum(self.val_last_iou) / len(self.val_last_iou)
     #     print('validation iou:', mean_val_iou, 'last frame iou:', mean_last_iou)
 
-    
     def test_step(self, batch, batch_idx):
+        assert len(batch) == 2 # a quick debugger
         if len(batch) == 3:
             # TODO: only for testing iou, change back later
             # batch_x, _, batch_y = batch

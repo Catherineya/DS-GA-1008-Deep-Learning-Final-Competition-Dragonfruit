@@ -47,7 +47,7 @@ if __name__ == "__main__":
     BATCH_SIZE=custom_training_config['batch_size']
 
     # load dataset
-    limit = -1
+    limit = None
     # base_datadir = '/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset'
     base_datadir = config['data_root']
     train_set = CompetitionDataset(os.path.join(base_datadir, 'train'), dataset_type='labeled', limit=limit) # we treat trainset as unlabeled here

@@ -209,10 +209,11 @@ class SimMP(Base_method):
             torch.save(self.submission, save_path)
             print('submission saved to team_12.pt')
 
+            self.submission = None
+
         # reset all values 
         self.test_pred = None
-        self.test_true = None
-        self.submission = None
+        self.test_true = None   
 
 
 
