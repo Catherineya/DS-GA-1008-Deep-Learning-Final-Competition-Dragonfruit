@@ -1,3 +1,4 @@
+import os
 import os.path as osp
 import sys
 import time
@@ -20,6 +21,7 @@ from dragonfruitvp.src.simvp import SimVP
 from dragonfruitvp.src.unet import UNet
 from dragonfruitvp.src.simunet import SimUNet
 from dragonfruitvp.utils.callbacks import (SetupCallback, EpochEndCallback, BestCheckpointCallback)
+from dragonfruitvp.utils.vis import save_masks, save_images
 
 
 class DragonFruitFinetune:
@@ -27,7 +29,7 @@ class DragonFruitFinetune:
         self.args = args
         self.config = self.args.__dict__
 
-        # print('config file for evaluate: ', self.config)
+        self.vis_val = self.config['vis_val']
 
         self._dist = self.args.dist
         self.device = torch.device('cuda' if torch.cuda.is_available else 'cpu') 
@@ -44,12 +46,6 @@ class DragonFruitFinetune:
             test_mean = self.data.test_mean,
             test_std = self.data.test_std,
             save_dir = save_dir,
-            # load_vp = True,
-            # load_unet = True,
-            # fix_vp = True,
-            # fix_unet = False,
-            # vp_weight = osp.join(ckpt_dir, 'best.ckpt'),
-            # unet_weight = 'unet/best_model.pth',
             **self.config
         )
 
@@ -111,12 +107,10 @@ class DragonFruitFinetune:
         for pre_seq, aft_seq, masks in tqdm(self.data.val_dataloader(), total=len(self.data.val_dataloader())):
             pre_seq, aft_seq, masks = pre_seq.to(self.device), aft_seq.to(self.device), masks.to(self.device)
             x_pred, pmask, tmask_pre, tmask_aft = self.method(batch_x=pre_seq, batch_x_aft=aft_seq)
-            # print(masks_pred1.shape, masks_pred2.shape, masks.shape)
             B, T, _, _, _ = pre_seq.shape
 
             _, pmask = torch.max(pmask, 1)
             _, tmask_aft = torch.max(tmask_aft, 1)
-            # print('shape after argmax', masks_pred1.shape)
             _, H, W = pmask.shape
             pmask = pmask.reshape(B, T, H, W)[:,-1,:,:].squeeze(1)
             tmask_aft = tmask_aft.reshape(B, T, H, W)[:,-1,:,:].squeeze(1)
@@ -128,51 +122,48 @@ class DragonFruitFinetune:
         mean_val_pred_iou = sum(val_pred_iou) / len(val_pred_iou)
         mean_val_true_iou = sum(val_true_iou) / len(val_true_iou)
         print('validation mean iou: ', mean_val_pred_iou, mean_val_true_iou)
-        
-        # for batch, (datas, masks) in tqdm(enumerate(self.data.val_dataloader()), total=len(self.data.val_dataloader())):
-        #     datas, masks= datas.to(self.device), masks.to(self.device)
-        #     frames_pred = self.method(datas)
-        #     # print(frames_pred.shape)
-        #     frames_pred = frames_pred[:, -1, :, :, :].squeeze(1)
-        #     # labels = labels[:, -1, :, :, :].squeeze(1)
-        #     # print(frames_pred.shape)
-        #     masks_pred = self.unet(frames_pred).argmax(1)
-        #     # print('mask_pred shape:', masks_pred.shape, 'mask_true shape:', masks.shape)
-
-        #     val_iou.append(jaccard(masks_pred, masks).cpu().item())
-            
-
-        #     # frame_true = to_pil_image(labels[-1].cpu())
-        #     frame_pred = to_pil_image(frames_pred[-1].cpu())
-        #     mask_true = to_pil_image(masks[-1].byte().cpu().data)
-        #     mask_pred = to_pil_image(masks_pred[-1].byte().cpu().data)
-            
-        #     # plt.imsave('exp_frame_true.png', np.array(frame_true))
-        #     plt.imsave('exp_frame_pred.png', np.array(frame_pred))
-        #     plt.imsave('exp_mask_true.png', mask_true)
-        #     plt.imsave('exp_mask_pred.png', mask_pred)
-
-        
-        # mean_val_iou = sum(val_iou) / len(val_iou)
-        # print('validation mean iou: ', mean_val_iou)
     
     def test(self):
+        ckpt = torch.load(osp.join(self.save_dir, 'checkpoints', 'best.ckpt'))
+        self.method.load_state_dict(ckpt['state_dict'])
         self.method.to(self.device)
-        # self.unet.to(self.device)
 
         self.method.eval()
-        # self.unet.eval()
 
         results = None
-        for batch, (x, y) in tqdm(enumerate(self.data.test_dataloader()), total=len(self.data.test_dataloader())):
-            x = x.to(self.device)
-            frames_pred = self.method(x)
-            # print(frames_pred.shape)
-            frames_pred = frames_pred[:, -1, :, :, :].squeeze(1)
-            masks_pred = self.unet(frames_pred).argmax(1)
-            results = torch.cat((results, masks_pred), dim=0) if results is not None else masks_pred
-        
-        return results
+        frames = None
+        for idx, batch in tqdm(enumerate(self.data.test_dataloader()), total=len(self.data.test_dataloader())):
+            if len(batch) == 3:
+                pre_seqs, aft_seqs, masks = batch
+                pre_seqs = pre_seqs.to(self.device)
+                frames_pred, masks_tensor = self.method(pre_seqs)
+
+                frames_pred, masks_tensor = frames_pred.cpu().detach(), masks_tensor.cpu().detach()
+
+                B, T, C, _, _ = aft_seqs.shape
+                _, M, H, W = masks_tensor.shape
+                masks_tensor = masks_tensor.reshape(B, T, M, H, W)
+                logits_pred = masks_tensor[:, -1, :, :, :].squeeze(1) # we save logits directly for further evaluation
+                masks_pred = logits_pred.argmax(1)
+                frames_pred = frames_pred.reshape(B, T, C, H, W)[:, -1, :, :, :].squeeze(1)
+
+                results = torch.cat((results, logits_pred), dim=0) if results is not None else logits_pred
+                if self.vis_val:
+                    save_path = osp.join('vis_test', self.config['ex_name'], f'{idx}_{B}')
+                    save_images(frames_pred, save_path, 'image_pred')
+                    save_masks(masks_pred, save_path, 'mask_pred')
+            else:
+                raise NotImplementedError
+
+        # return results
+        if results is not None:
+            save_root_dir = './papervis'
+            results_dir = os.path.join(save_root_dir, 'results')
+            os.makedirs(results_dir, exist_ok=True)
+            tensor_save_path = os.path.join(results_dir, f"{self.config['ex_name']}.pt")
+            torch.save(results, tensor_save_path)
+            print(f'results saved to {tensor_save_path}')
+            results = None
 
     def display_method_info(self, args):
         device = torch.device(args.device)

@@ -1,0 +1,7 @@
+method: 'SimMP'
+model_type: 'gsta'
+N_S: 4
+N_T: 8
+hid_S: 64
+hid_T: 256
+in_shape: [11, 3, 160, 240]

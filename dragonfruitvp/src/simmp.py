@@ -27,9 +27,6 @@ class SimMP(Base_method):
         self.val_last_iou = []
         self.test_iou = []
 
-        # self.val_pred = None
-        # self.val_true = None
-
         self.val_last_pred = None
         self.val_last_true = None
 
@@ -98,6 +95,9 @@ class SimMP(Base_method):
         pred_y_last = pred_y[:,-1,:,:,:].squeeze(1)
         batch_y_last = true_y[:,-1,:,:].squeeze(1)
 
+        pred_y_first = pred_y[:,0,:,:,:].squeeze(1)
+        batch_y_first = true_y[:,0,:,:].squeeze(1)
+        
         pred_y_cat = pred_y.reshape(B*T, M, H, W)
         true_y_cat = true_y.reshape(B*T, H, W)
         
@@ -121,29 +121,23 @@ class SimMP(Base_method):
         # self.val_true = torch.cat((self.val_true, true_y_cat), dim=0) if self.val_true is not None else true_y_cat
     
         self.val_last_pred = torch.cat((self.val_last_pred, pred_y_last_mask), dim=0) if self.val_last_pred is not None else pred_y_last_mask
-        self.val_last_true = torch.cat((self.val_last_pred, batch_y_last), dim=0) if self.val_last_true is not None else batch_y_last
+        self.val_last_true = torch.cat((self.val_last_true, batch_y_last), dim=0) if self.val_last_true is not None else batch_y_last
 
         self.val_first_pred = torch.cat((self.val_first_pred, pred_y_first_mask), dim=0) if self.val_first_pred is not None else pred_y_first_mask
         self.val_first_true = torch.cat((self.val_first_true, batch_y_first), dim=0) if self.val_first_true is not None else batch_y_first
 
         if self.vis_val:
-            for b in range(pred_y_mask.shape[0]):
+            for b in range(pred_y.shape[0]):
                 save_path = os.path.join('vis_mptrain', f'{batch_idx}_{b}')
-                # masks_pred = pred_y[b]
-                # _, masks_pred = torch.max(masks_pred, 1)
-                # masks_true = true_y[b]ji
-                masks_pred = pred_y_mask[b]
-                masks_true = true_y_cat[b]
+                masks_pred = pred_y[b]
+                _, masks_pred = torch.max(masks_pred, 1)
+                masks_true = true_y[b]
                 save_masks(masks_pred, save_path, name='pred')
                 save_masks(masks_true, save_path, name='true')
 
         return loss
 
     def on_validation_epoch_end(self):
-        # mean_val_iou = sum(self.val_iou) / len(self.val_iou)
-        # mean_last_iou = sum(self.val_last_iou) / len(self.val_last_iou)
-        # print('shape check', self.val_pred.shape, self.val_true.shape, self.val_last_pred.shape, self.val_last_true.shape)
-
         jaccard = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
         # full_iou = jaccard(self.val_pred, self.val_true).item()
         last_iou = jaccard(self.val_last_pred, self.val_last_true).item()
@@ -155,38 +149,30 @@ class SimMP(Base_method):
 
         self.val_first_pred = None
         self.val_first_true = None
-        # self.log('validation iou', full_iou, on_step=False, on_epoch=True, prog_bar=False)
-        # self.log('last frame iou', last_iou, on_step=False, on_epoch=True, prog_bar=False)
-
 
     def test_step(self, batch, batch_idx):
-        if len(batch) == 3:
-            # TODO: only for testing iou, change back later
+        if len(batch) == 3: # for testing iou
             batch_x, _, batch_y = batch
             pred_y = self(batch_x, batch_y)
             B, T, M, H, W = pred_y.shape
             true_y = batch_y[:, T:, :, :]
 
-            last_pred_y = pred_y[:,-1,:,:,:].squeeze(1)
-            last_true_y = true_y[:,-1,:,:].squeeze(1)
+            last_pred_y = pred_y[:,-1,:,:,:].squeeze(1).cpu().detach()
+            last_true_y = true_y[:,-1,:,:].squeeze(1).cpu()
             
             _, pred_tensor = torch.max(last_pred_y, 1)
 
-            pred_tensor = pred_tensor.cpu()
-            last_true_y = last_true_y.cpu()
+            self.test_outputs.append(last_pred_y)
+
             self.test_pred = torch.cat((self.test_pred, pred_tensor), dim=0) if self.test_pred is not None else pred_tensor
             self.test_true = torch.cat((self.test_true, last_true_y), dim=0) if self.test_true is not None else last_true_y
+   
+            if self.vis_val:
+                save_path = os.path.join('vis_test', self.ex_name, f'{batch_idx}_{B}')
+                save_masks(pred_tensor, save_path, name='pred')
+                save_masks(last_true_y, save_path, name='true')
 
-            # iou = jaccard(pred_tensor.cpu(), last_true_y.cpu()).item()
-            # print('iou test:', iou)
-
-            # self.test_iou.append(iou)
-        
-            save_path = 'vis_test_mask'
-            save_masks(pred_tensor, save_path, name='pred')
-            save_masks(last_true_y, save_path, name='true')
-
-        elif len(batch) == 1:
+        elif len(batch) == 1: # for competition submission, the hidden dataset only has video seq in
             pred_y = self(batch)
             last_pred_y = pred_y[:,-1,:,:,:].squeeze(1)
             _, mask_pred = torch.max(last_pred_y, 1)
@@ -195,9 +181,6 @@ class SimMP(Base_method):
 
 
     def on_test_epoch_end(self):
-        # if len(self.test_iou) > 0:
-        #     mean_iou = sum(self.test_iou)/len(self.test_iou)
-        #     print('iou during test', mean_iou)
         if self.test_pred is not None and self.test_true is not None:
             jaccard = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
             iou = jaccard(self.test_pred.cpu(), self.test_true).cpu().item()
@@ -213,9 +196,17 @@ class SimMP(Base_method):
 
         # reset all values 
         self.test_pred = None
-        self.test_true = None   
+        self.test_true = None  
 
-
+        # print('--check test outputs--', len(self.test_outputs))
+        if len(self.test_outputs) > 0:
+            out_tensor = torch.cat(self.test_outputs, dim=0)
+            save_root_dir = './papervis'
+            results_dir = os.path.join(save_root_dir, 'results')
+            os.makedirs(results_dir, exist_ok=True)
+            tensor_save_path = os.path.join(results_dir, f'{self.ex_name}.pt')
+            torch.save(out_tensor, tensor_save_path)
+            print(f'results saved to {tensor_save_path}')
 
 class SimMP_Model(nn.Module):
     def __init__(self, in_shape, hid_S=16, hid_T=256, N_S=4, N_T=4, model_type='gSTA',

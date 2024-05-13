@@ -3,17 +3,16 @@ aft_seq_length: 11
 total_length: 22
 batch_size: 8
 val_batch_size: 8
-epoch: 20
+epoch: 40
 lr: 0.001
 metrics: 
   - 'mse'
   - 'mae'
   - 'ssim'
 dataname: 'custom'
-in_shape: [11, 3, 160, 240]
-eps: 0.5
+eps: 1
+data_root: './dataset'
 res_dir: 'weights_hub'
-data_root: ./dataset'
 gpus:
   - 0
   - 1

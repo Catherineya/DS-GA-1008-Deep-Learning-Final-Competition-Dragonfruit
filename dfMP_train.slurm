@@ -20,8 +20,8 @@ ${sif_path} /bin/bash -c "
     source /ext3/env.sh
     conda activate base
     python dfMP_train.py \
-        --model_config_file 'dragonfruitvp/custom_configs/model_configs/gsta_mp.yaml'\
-        --training_config_file 'dragonfruitvp/custom_configs/training_configs/mptrain_e10lr3_onecycle_hpc.yaml'
+        --model_config_file 'dragonfruitvp/custom_configs/model_configs/mpl_gsta.yaml'\
+        --training_config_file 'dragonfruitvp/custom_configs/training_configs/mptrain_e10lr3oc.yaml'
 "
 
 

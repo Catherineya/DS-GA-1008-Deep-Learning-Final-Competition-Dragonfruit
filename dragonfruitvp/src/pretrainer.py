@@ -15,8 +15,6 @@ from dragonfruitvp.src.simvp import SimVP
 from dragonfruitvp.utils.callbacks import (SetupCallback, EpochEndCallback, BestCheckpointCallback)
 
 
-
-
 class DragonFruitPretrain:
     def __init__(self, args, dataloaders=None, strategy='auto'):
         self.args = args

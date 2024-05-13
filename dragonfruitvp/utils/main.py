@@ -73,3 +73,4 @@ def load_model_weights(model, weight_path, is_ckpt, fix=True):
         for param in model.parameters():
             param.requires_grad = False
     return model
+

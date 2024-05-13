@@ -16,8 +16,6 @@ from dragonfruitvp.src.simmp2 import SimMP2
 from dragonfruitvp.utils.callbacks import (SetupCallback, EpochEndCallback, BestCheckpointCallback)
 
 
-
-
 class DragonFruitMPTrain:
     def __init__(self, args, dataloaders=None, strategy='auto'):
         self.args = args

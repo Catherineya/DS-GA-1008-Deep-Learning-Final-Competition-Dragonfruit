@@ -5,14 +5,13 @@ batch_size: 6
 val_batch_size: 6
 epoch: 20
 lr: 0.001
-min_lr: 0.00001
+sched: 'step'
+decay_rate: 0.8
+decay_epoch: 1
 metrics: 
   - 'iou'
 dataname: 'custom'
-in_shape: [11, 1, 160, 240]
-eps: 1
 res_dir: 'weights_hub'
-# data_root: '../dataset'
 data_root: './dataset'
 vis_val: True
 gpus:
@@ -21,5 +20,4 @@ gpus:
 #   - 2
 #   - 3
 # num_workers: 11
-num_workers: 1
-test: True
+test: False

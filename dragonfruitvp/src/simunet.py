@@ -55,7 +55,6 @@ class SimUNet(Base_method):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        # TODO: check if this works
         '''
         if dataset is labeled, we use it to train unet, the batch is [pre_seqs, aft_seqs, masks]
         if dataset is unlabeled, we use it to pretrain vp, batch is [pre_seqs, aft_seqs]
@@ -66,14 +65,11 @@ class SimUNet(Base_method):
         assert len(batch) == 3
         batch_x, batch_aft, batch_y = batch
         x_pred, pmask, tmask_pre, tmask_aft = self(batch_x, batch_aft, batch_y)
-        # print('prediction shape', pmask.shape, 'truth shape', tmask_pre.shape, tmask_aft.shape, 'mask shape', batch_y.shape)
         B, T, H, W = batch_y.shape
         t = T // 2
         batch_py = batch_y[:,t:,:,:].reshape(B*t, H, W)
         batch_ty_pre = batch_y[:,:t,:,:].reshape(B*t, H, W)
         batch_ty_aft = batch_py
-
-        # print('pmask shape:', pmask.shape, 'batch_py shape:', batch_py.shape)
 
         loss = self.criterion(pmask, batch_py)
         assert loss is not None
@@ -111,7 +107,7 @@ class SimUNet(Base_method):
 
 
 class SimUNet_Model(nn.Module):
-    def __init__(self, vp_weight, unet_weight, load_vp=True, fix_vp=True, load_unet=False, fix_unet=False, **kwargs):
+    def __init__(self, vp_weight=None, unet_weight=None, load_vp=True, fix_vp=True, load_unet=False, fix_unet=False, **kwargs):
         super().__init__()
         self.vp = SimVP(**kwargs)
         self.unet = UNet()
@@ -120,24 +116,21 @@ class SimUNet_Model(nn.Module):
 
         #load weights 
         if load_vp:
-            assert vp_weight is not None
-            self.vp = load_model_weights(self.vp, vp_weight, is_ckpt=True, fix=fix_vp)
-        
-        if load_unet:
-            assert unet_weight is not None
-            self.unet = load_model_weights(self.unet, unet_weight, is_ckpt=False, fix=fix_unet)
-        
-        # ckpt = torch.load(vp_weight)
-        # self.vp.load_state_dict(ckpt['state_dict'])
-        # if fix_vp:
-        #     for param in self.vp.parameters():
-        #         param.requires_grad = False
+            # assert vp_weight is not None
+            if vp_weight is not None:
+                self.vp = load_model_weights(self.vp, vp_weight, is_ckpt=True, fix=fix_vp)
+            else:
+                print('WARNING: no vp_weight is actually loaded')
 
-        # unet_statedict = torch.load(unet_weight)
-        # self.unet.load_state_dict(unet_statedict)
+        if load_unet:
+            # assert unet_weight is not None
+            if unet_weight is not None:
+                self.unet = load_model_weights(self.unet, unet_weight, is_ckpt=False, fix=fix_unet)
+            else:
+                print('WARNING: no unet_weight is actually loaded')                
 
     
-    def forward(self, x_raw, x_aft, **kwargs):
+    def forward(self, x_raw, x_aft=None, **kwargs):
         # print('shape of input x in simunet: ', x_raw.shape)
         B, T, C, H, W = x_raw.shape
 

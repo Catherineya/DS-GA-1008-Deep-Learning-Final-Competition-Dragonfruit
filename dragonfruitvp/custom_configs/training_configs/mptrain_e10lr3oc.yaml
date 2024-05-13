@@ -3,15 +3,15 @@ aft_seq_length: 11
 total_length: 22
 batch_size: 8
 val_batch_size: 8
-epoch: 3
+epoch: 10
 lr: 0.001
 metrics: 
   - 'iou'
 dataname: 'custom'
-in_shape: [11, 3, 160, 240]
-eps: 0
 res_dir: 'weights_hub'
-data_root: '/scratch/yg2709/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit/dataset'
+data_root: './dataset'
 vis_val: True
+gpus:
+  - 0
 num_workers: 2
 test: False

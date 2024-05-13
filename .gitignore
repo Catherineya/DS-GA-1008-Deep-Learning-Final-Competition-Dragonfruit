@@ -3,6 +3,7 @@ weights_hub/
 lightning_logs/
 masks_vis/
 vis*/
+papervis/
 *.out
 **/__pycache__/
 .ipynb_checkpoints

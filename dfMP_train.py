@@ -71,7 +71,7 @@ if __name__ == "__main__":
         augmented_set, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=num_workers
     )
 
-    if config['test']:
+    if config['submission']:
         print('using hidden set')
         hidden_set = CompetitionDataset(os.path.join(base_datadir, 'hidden'), dataset_type='pseudohidden')
         dataloader_hidden = torch.utils.data.DataLoader(
@@ -84,8 +84,9 @@ if __name__ == "__main__":
         # start pretraining, use unlabeled as training data, val as validation, train as test
         mp = DragonFruitMPTrain(args, dataloaders=(dataloader_augmented, dataloader_val, dataloader_val), strategy='auto')
 
-        # print('>'*35 + ' training ' + '<'*35)
-        # mp.train()
+    if not config['test']:
+        print('>'*35 + ' training ' + '<'*35)
+        mp.train()
 
     print('>'*35 + ' testing  ' + '<'*35)
     mp.test()

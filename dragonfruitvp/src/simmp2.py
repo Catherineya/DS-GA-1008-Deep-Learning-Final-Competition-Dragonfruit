@@ -23,43 +23,6 @@ class SimMP2(SimMP):
         eps: controls how much extra weight is put on the last frame prediction, default to be 0
         ''' 
         super().__init__(**kwargs)
-    #     self.eps = eps
-    #     self.criterion = nn.CrossEntropyLoss()
-
-    #     # for calculating average iou
-    #     self.val_iou = []
-    #     self.val_last_iou = []
-    #     self.test_iou = []
-        
-    #     # for competition submission
-    #     self.submission = None
-
-    # def _build_model(self, **kwargs):
-    #     return SimMP_Model(**kwargs)
-    
-    # def forward(self, batch_x, batch_y=None, **kwargs):
-    #     pre_seq_length, aft_seq_length = self.hparams.pre_seq_length, self.hparams.aft_seq_length
-    #     if aft_seq_length == pre_seq_length:
-    #         pred_y = self.model(batch_x)
-    #     elif aft_seq_length < pre_seq_length:
-    #         pred_y = self.model(batch_x)
-    #         pred_y = pred_y[:, :aft_seq_length]
-    #     elif aft_seq_length > pre_seq_length:
-    #         pred_y = []
-    #         d = aft_seq_length // pre_seq_length
-    #         m = aft_seq_length % pre_seq_length
-            
-    #         cur_seq = batch_x.clone()
-    #         for _ in range(d):
-    #             cur_seq = self.model(cur_seq)
-    #             pred_y.append(cur_seq)
-            
-    #         if m != 0:
-    #             cur_seq = self.model(cur_seq)
-    #             pred_y.append(cur_seq[:, :m])
-            
-    #         pred_y = torch.cat(pred_y, dim=1)
-    #     return pred_y
     
     def training_step(self, batch, batch_idx):
         assert len(batch) == 3
@@ -121,9 +84,6 @@ class SimMP2(SimMP):
 
         # self.val_pred = torch.cat((self.val_pred, pred_y_mask), dim=0) if self.val_pred is not None else pred_y_mask
         # self.val_true = torch.cat((self.val_true, true_y_cat), dim=0) if self.val_true is not None else true_y_cat
-    
-        # if self.val_last_pred is None:
-        #     print('the validation tensor is initialized in {batch_idx}')
 
         self.val_last_pred = torch.cat((self.val_last_pred, pred_y_last_mask), dim=0) if self.val_last_pred is not None else pred_y_last_mask
         self.val_last_true = torch.cat((self.val_last_true, batch_y_last), dim=0) if self.val_last_true is not None else batch_y_last
@@ -142,19 +102,9 @@ class SimMP2(SimMP):
 
         return loss
 
-    # def on_validation_epoch_end(self):
-    #     mean_val_iou = sum(self.val_iou) / len(self.val_iou)
-    #     mean_last_iou = sum(self.val_last_iou) / len(self.val_last_iou)
-    #     print('validation iou:', mean_val_iou, 'last frame iou:', mean_last_iou)
-
     def test_step(self, batch, batch_idx):
-        assert len(batch) == 2 # a quick debugger
+        # assert len(batch) == 2 # a quick debugger
         if len(batch) == 3:
-            # TODO: only for testing iou, change back later
-            # batch_x, _, batch_y = batch
-            # pred_y = self(batch_x, batch_y)
-            # B, T, M, H, W = pred_y.shape
-            # true_y = batch_y[:, T:, :, :]
             _, _, batch_y = batch
             B, T2, H, W = batch_y.shape
             T = T2 // 2
@@ -163,19 +113,22 @@ class SimMP2(SimMP):
             true_y = batch_y[:, T:, :, :]
             pred_y = self(batch_x)
 
-            last_pred_y = pred_y[:,-1,:,:,:].squeeze(1)
-            last_true_y = true_y[:,-1,:,:].squeeze(1)
+            last_pred_y = pred_y[:,-1,:,:,:].squeeze(1).cpu().detach()
+            last_true_y = true_y[:,-1,:,:].squeeze(1).cpu()
 
             _, pred_tensor = torch.max(last_pred_y, 1)
             
+            self.test_outputs.append(last_pred_y)
+
             pred_tensor = pred_tensor.cpu()
             last_true_y = last_true_y.cpu()
             self.test_pred = torch.cat((self.test_pred, pred_tensor), dim=0) if self.test_pred is not None else pred_tensor
             self.test_true = torch.cat((self.test_true, last_true_y), dim=0) if self.test_true is not None else last_true_y
-        
-            save_path = 'vis_test_mask'
-            save_masks(pred_tensor, save_path, name='pred')
-            save_masks(last_true_y, save_path, name='true')
+            
+            if self.vis_val:
+                save_path = os.path.join('vis_test', self.ex_name, f'{batch_idx}_{B}')
+                save_masks(pred_tensor, save_path, name='mask_pred')
+                save_masks(last_true_y, save_path, name='mask_true')
 
         elif len(batch) == 2:
             batch_img, batch_x = batch
@@ -189,8 +142,6 @@ class SimMP2(SimMP):
 
             # visualize masks and images for varification
             save_path = f'vis_submission/{batch_idx}'
-
-            # print('shape check', mask_pred.shape, batch[0].shape, batch[1].shape)
             
             save_masks(mask_pred, save_path, name='pred')
 
@@ -200,20 +151,8 @@ class SimMP2(SimMP):
                 save_images(batch_img[j], sub_save_path, name='pre_image')
 
         elif len(batch) == 1:
-            # todo: use unet to label the data first
+            # we need to use unet to label the data first
             raise NotImplementedError
-
-    # def on_test_epoch_end(self):
-    #     if len(self.test_iou) > 0:
-    #         mean_iou = sum(self.test_iou)/len(self.test_iou)
-    #         print('iou during test', mean_iou)
-
-    #     if self.submission is not None:
-    #         print('submission shape', self.submission.shape)
-    #         save_path = 'team_12.pt'
-    #         torch.save(self.submission, save_path)
-    #         print('submission saved to team_12.pt')
-
 
 
 class SimMP2_Model(nn.Module):

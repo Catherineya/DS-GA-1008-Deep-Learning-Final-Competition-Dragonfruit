@@ -1,35 +1,74 @@
 # CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit
 
-**Team12: DragonFruit** - Haotong Wu, Jianing Zhang, Yuanhe Guo
+**Team12: DragonFruit** - Yuanhe Guo, Jianing Zhang, Haotong Wu
+
+*Ranked 2nd in 2024 Spring final competition*
 
 ## Getting Started
-### Dataset
-Dataset are recommended to be put inside `dataset` folder.
 
-### Pretrain model for video prediction
+### Step1: Clone Repo
 ```
-sbatch dfVP_pretrain.slurm
+git clone https://github.com/RicercarG/CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit.git
 ```
-or 
 ```
-python dfVP_pretrain.py \
-    --model_config_file 'dragonfruitvp/custom_configs/model_configs/TODO.yaml'\
-    --training_config_file 'dragonfruitvp/custom_configs/training_configs/pretrain_e3lr3_eps05.yaml'
+cd CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit
 ```
 
-### Finetune unet for mask prediction
+### Step2: Prepare Dataset
+Put dataset inside `dataset` folder, with structure being
 ```
-sbatch dfVP_finetune.slrum
+CSCI-GA-2572-Deep-Learning-Final-Competition-Dragonfruit
+└── dataset
+    ├── hidden
+    ├── train
+    ├── unlabeled
+    └── val
 ```
-or
+
+### Step3: Prepare conda environment
 ```
-TODO
+conda env create -n dfvp -f base_environment.yml
+conda activate dfvp
+```
+
+### Step4: Train the U-Net
+```
+python dfUNet_train.py
+```
+Weights will be saved to `weights_hub/unet`
+
+### Step5: Generate labels for unlabeled dataset
+```
+python dfLabeler.py --dataset_path './dataset/unlabeled' --unet_weight './weights_hub/unet/best_model.pth'
+```
+
+### Step6: Train SimMP2
+All configurations could be found in `dragonfruitvp/custom_configs`. Set `test: False`, `submission: False` in training config. Adjust `gpus` and `num_workers` based on your gpu numbers.
+```
+python dfMP_train.py --model_config_file 'dragonfruitvp/custom_configs/model_configs/mpl_gsta.yaml' --training_config_file 'dragonfruitvp/custom_configs/training_configs/mptrain_e10lr3oc.yaml'
+```
+ Weights and logs will be saved to './weights_hub/<training_config>_<model_config>'. If `vis_val: True` in training config, then images for visualization during validation and test epochs will be saved to `vis_*` folder correspondingly.
+
+
+### Step7: Get prediction results for hidden set
+Label the hidden set
+```
+python dfLabeler.py --dataset_path './dataset/hidden' --unet_weight './weights_hub/unet/best_model.pth'
+```
+
+Go to the desired training config yaml file (`'dragonfruitvp/custom_configs/training_configs/mptrain_e10lr3oc.yaml'`), and set `test: True`, `submission: True`.
+Then run dfMP_train again
+```
+python dfMP_train.py --model_config_file 'dragonfruitvp/custom_configs/model_configs/mpl_gsta.yaml' --training_config_file 'dragonfruitvp/custom_configs/training_configs/mptrain_e10lr3oc.yaml'
 ```
 
 ## File Structure
 - `weights_hub`: All model weights will be saved here. Could be changed in configuration.
 - `lightning_logs`: Logs saved by pytorch lightning during training
 
+
+
+# GCP Notes
 ## Connet to GCP
 ### Login burst
 ```
@@ -38,11 +77,11 @@ ssh burst
 ### Interactive runtime
 CPU:
 ```
-srun --partition=interactive --account csci_ga_2572_002-2024sp-12 --pty /bin/bash
+srun --partition=interactive --account csci_ga_2572_002-2024sp-x --pty /bin/bash
 ```
 GPU:
 ```
-srun --partition=n1s8-v100-1 --gres=gpu:1 --account csci_ga_2572_002-2024sp-12 --time=04:00:00 --pty /bin/bash
+srun --partition=n1s8-v100-1 --gres=gpu:1 --account csci_ga_2572_002-2024sp-x --time=04:00:00 --pty /bin/bash
 ```
 ### Send files
 ```
