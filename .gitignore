@@ -10,3 +10,4 @@ papervis/
 *.tar
 *.gz
 *.pt
+*.slurm

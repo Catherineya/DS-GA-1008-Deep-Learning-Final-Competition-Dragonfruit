@@ -61,11 +61,12 @@ Then run dfMP_train again
 ```
 python dfMP_train.py --model_config_file 'dragonfruitvp/custom_configs/model_configs/mpl_gsta.yaml' --training_config_file 'dragonfruitvp/custom_configs/training_configs/mptrain_e10lr3oc.yaml'
 ```
+Result will be saved as `team_12.pt`.
 
 ## File Structure
 - `weights_hub`: All model weights will be saved here. Could be changed in configuration.
 - `lightning_logs`: Logs saved by pytorch lightning during training
-
+- `vis_*`: Images and Masks for visualization.
 
 
 # GCP Notes
